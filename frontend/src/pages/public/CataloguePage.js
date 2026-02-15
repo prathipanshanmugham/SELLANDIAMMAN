@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -51,6 +52,13 @@ const CataloguePage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>Product Catalogue | Sellandiamman Traders - Electrical Products Perundurai</title>
+        <meta name="description" content="Browse 10,000+ electrical products at Sellandiamman Traders. Wires, cables, MCBs, switches, power tools, lighting from top brands like Havells, Schneider, Legrand, Philips." />
+        <meta property="og:title" content="Product Catalogue | Sellandiamman Traders" />
+        <meta property="og:description" content="Browse our extensive range of electrical products. Quality wires, cables, MCBs, switches, and more." />
+        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/catalogue" />
+      </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

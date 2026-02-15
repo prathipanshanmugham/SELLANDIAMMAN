@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Button } from '../../components/ui/button';
 import { Zap, MapPin, Phone, Clock, Mail, ArrowRight } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
@@ -6,6 +7,13 @@ import WhatsAppButton from '../../components/WhatsAppButton';
 const ContactPage = () => {
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>Contact Us | Sellandiamman Traders - Electrical Store Perundurai</title>
+        <meta name="description" content="Contact Sellandiamman Traders at 199, Kunnathur Rd, Perundurai, Erode. Call: 96987 86056, 9842823300. Open Mon-Sat 9AM-8PM. Your trusted electrical partner." />
+        <meta property="og:title" content="Contact Us | Sellandiamman Traders" />
+        <meta property="og:description" content="Visit our store at 199, Kunnathur Rd, Perundurai or call us at 96987 86056 for all your electrical needs." />
+        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/contact" />
+      </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Button } from '../../components/ui/button';
 import { Zap, Package, MapPin, Phone, ArrowRight, Shield, Truck, Clock } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
@@ -6,6 +7,13 @@ import WhatsAppButton from '../../components/WhatsAppButton';
 const HomePage = () => {
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Sellandiamman Traders | Best Electrical Store in Perundurai, Erode</title>
+        <meta name="description" content="Sellandiamman Traders - Your trusted electrical partner in Perundurai. 10,000+ quality electrical products including wires, cables, MCBs, switches, power tools. Wholesale & retail. Call: 96987 86056" />
+        <meta property="og:title" content="Sellandiamman Traders | Best Electrical Store in Perundurai" />
+        <meta property="og:description" content="Your trusted electrical partner with 10,000+ quality products. Wires, cables, MCBs, switches, power tools at best prices." />
+        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/" />
+      </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
