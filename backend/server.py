@@ -26,7 +26,7 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'sellandiamman-traders-secret-key-2024
 JWT_ALGORITHM = "HS256"
 
 # Create the main app
-app = FastAPI(title="Sellandiamman Traders API")
+app = FastAPI(title="Sellandiamman Traders API", redirect_slashes=False)
 
 # Create routers
 api_router = APIRouter(prefix="/api")
