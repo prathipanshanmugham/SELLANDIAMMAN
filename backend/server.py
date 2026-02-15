@@ -273,7 +273,7 @@ async def create_employee(employee: EmployeeCreate, user: dict = Depends(require
 
 @employees_router.get("", response_model=List[EmployeeResponse])
 async def get_employees(user: dict = Depends(require_admin)):
-    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
     return [EmployeeResponse(**emp) for emp in employees]
 
 @employees_router.delete("/{employee_id}")
@@ -324,6 +324,8 @@ async def get_products(
     category: Optional[str] = None,
     zone: Optional[str] = None,
     low_stock: Optional[bool] = None,
+    limit: int = 100,
+    skip: int = 0,
     user: dict = Depends(get_current_user)
 ):
     query = {}
@@ -344,7 +346,7 @@ async def get_products(
     if low_stock:
         query["$expr"] = {"$lte": ["$quantity_available", "$reorder_level"]}
     
-    products = await db.products.find(query, {"_id": 0}).to_list(10000)
+    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(min(limit, 500)).to_list(min(limit, 500))
     return [ProductResponse(**prod) for prod in products]
 
 @products_router.get("/categories")
@@ -472,13 +474,15 @@ async def create_order(order: OrderCreate, user: dict = Depends(get_current_user
 @orders_router.get("", response_model=List[OrderResponse])
 async def get_orders(
     status: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
     user: dict = Depends(get_current_user)
 ):
     query = {}
     if status:
         query["status"] = status
     
-    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(min(limit, 200)).to_list(min(limit, 200))
     return [OrderResponse(**order) for order in orders]
 
 @orders_router.get("/{order_id}", response_model=OrderResponse)
@@ -635,7 +639,9 @@ async def get_low_stock_items(user: dict = Depends(get_current_user)):
 @public_router.get("/catalogue", response_model=List[PublicProduct])
 async def get_public_catalogue(
     search: Optional[str] = None,
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0
 ):
     query = {}
     if search:
@@ -650,7 +656,7 @@ async def get_public_catalogue(
     products = await db.products.find(
         query,
         {"_id": 0, "sku": 1, "product_name": 1, "category": 1, "brand": 1, "image_url": 1}
-    ).to_list(1000)
+    ).skip(skip).limit(min(limit, 100)).to_list(min(limit, 100))
     
     return [PublicProduct(**prod) for prod in products]
 
