@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Zap, Search, Package, Phone, ArrowRight } from 'lucide-react';
+import WhatsAppButton from '../../components/WhatsAppButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -218,6 +219,9 @@ const CataloguePage = () => {
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp Floating Button */}
+      <WhatsAppButton />
     </div>
   );
 };

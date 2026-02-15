@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Zap, Package, MapPin, Phone, ArrowRight, Shield, Truck, Clock } from 'lucide-react';
+import WhatsAppButton from '../../components/WhatsAppButton';
 
 const HomePage = () => {
   return (
@@ -237,6 +238,9 @@ const HomePage = () => {
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp Floating Button */}
+      <WhatsAppButton />
     </div>
   );
 };
