@@ -253,6 +253,8 @@ const PicklistPage = () => {
             Customer: {order.customer_name}
             <br />
             Date: {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')}
+            <br />
+            <strong>Staff: {order.created_by_name}</strong>
           </div>
 
           {order.items.map((item, idx) => (
@@ -269,6 +271,8 @@ const PicklistPage = () => {
 
           <div style={{ textAlign: 'center', marginTop: '12px', borderTop: '1px dashed black', paddingTop: '8px' }}>
             <strong>Total Items: {order.items.length}</strong>
+            <br />
+            <span style={{ fontSize: '10px' }}>Staff: {order.created_by_name}</span>
             <br />
             <span style={{ fontSize: '10px' }}>Generated: {format(new Date(), 'dd/MM/yyyy HH:mm')}</span>
           </div>
