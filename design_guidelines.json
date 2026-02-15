@@ -1,0 +1,169 @@
+{
+  "identity": {
+    "name": "E1 - The Anti-AI Designer",
+    "archetype": "The Performance Pro (Industrial Variant)",
+    "core_philosophy": "Precision, Density, Speed. No fluff. Every pixel has a job.",
+    "emotional_tone": "Reliable, Technical, Industrial Strength, 'Heavy-Duty'",
+    "visual_mood": "Blueprint meets Modern SaaS. High contrast, structural, tool-like."
+  },
+  "typography": {
+    "headings": {
+      "family": "Barlow Condensed, sans-serif",
+      "weights": ["600", "700"],
+      "usage": "Page titles, Section headers, KPI values",
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "General text, Labels, Form inputs",
+      "letter_spacing": "tracking-normal"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["500"],
+      "usage": "SKUs, Location Codes, Prices, Order IDs",
+      "letter_spacing": "tracking-wide"
+    }
+  },
+  "colors": {
+    "primary": {
+      "name": "Industrial Blue",
+      "hex": "#002D62",
+      "usage": "Primary Buttons, Active States, Header Backgrounds",
+      "tailwind_variable": "bg-blue-950"
+    },
+    "secondary": {
+      "name": "Safety Orange",
+      "hex": "#F97316",
+      "usage": "Call to Actions (Pick, Print), Alerts, Focus Rings",
+      "tailwind_variable": "bg-orange-500"
+    },
+    "background": {
+      "app": "#F1F5F9",
+      "card": "#FFFFFF",
+      "sidebar": "#0F172A"
+    },
+    "text": {
+      "primary": "#0F172A",
+      "secondary": "#475569",
+      "muted": "#94A3B8",
+      "on_primary": "#FFFFFF"
+    },
+    "status": {
+      "success": "#16A34A",
+      "warning": "#EAB308",
+      "error": "#DC2626",
+      "info": "#0284C7"
+    }
+  },
+  "layout_strategy": {
+    "public_site": {
+      "grid_mode": "Tetris Grid",
+      "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "spacing": "Generous (p-12, p-16)",
+      "vibe": "Showcase, Trust, Catalog"
+    },
+    "dashboard": {
+      "grid_mode": "High Density Grid",
+      "container": "w-full px-4 py-4",
+      "spacing": "Compact (p-4, gap-4)",
+      "vibe": "Cockpit, Control Center, Data Density"
+    }
+  },
+  "component_guidelines": {
+    "global_overrides": {
+      "radius": "rounded-sm",
+      "border_width": "border",
+      "shadow": "shadow-sm"
+    },
+    "buttons": {
+      "primary": "bg-[#002D62] hover:bg-[#001D40] text-white font-medium tracking-wide rounded-sm shadow-sm active:scale-95 transition-all",
+      "secondary": "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-sm",
+      "action": "bg-[#F97316] hover:bg-[#EA580C] text-white font-bold uppercase tracking-wider rounded-sm shadow-md"
+    },
+    "cards": {
+      "style": "bg-white border border-slate-200 shadow-sm rounded-sm",
+      "header": "border-b border-slate-100 p-4 bg-slate-50/50",
+      "content": "p-4"
+    },
+    "inputs": {
+      "style": "h-12 text-lg border-slate-300 focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 rounded-sm transition-all",
+      "label": "text-sm font-semibold text-slate-600 uppercase tracking-wider mb-1"
+    },
+    "tables": {
+      "style": "w-full text-sm text-left text-slate-600",
+      "header": "text-xs text-slate-500 uppercase bg-slate-100 font-bold tracking-wider py-3 px-4",
+      "row": "bg-white border-b hover:bg-slate-50 transition-colors",
+      "cell": "py-2 px-4 whitespace-nowrap font-mono"
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Subtle noise overlay on sidebar only",
+    "shadows": "Crisp, low-blur shadows (shadow-sm, shadow-md)",
+    "borders": "1px solid #E2E8F0 (Slate 200)",
+    "focus_states": "CRITICAL: Visible 2px offset ring in Safety Orange (#F97316) for keyboard navigation"
+  },
+  "motion": {
+    "philosophy": "Snap & Response. No drift.",
+    "duration": "duration-150",
+    "easing": "ease-out",
+    "interactions": "Buttons scale down slightly on click. Rows highlight instantly on hover."
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1584175053565-c757cdff0e9a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwd2FyZWhvdXNlJTIwd29ya2VyJTIwc2Nhbm5pbmclMjB0YWJsZXQlMjBpbnZlbnRvcnl8ZW58MHx8fHwxNzcxMTg5MDM1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Industrial Warehouse Background",
+      "category": "Hero"
+    },
+    "worker_scanning": {
+      "url": "https://images.unsplash.com/photo-1661260518150-184aa3f44186?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHw0fHxlbGVjdHJpY2FsJTIwd2FyZWhvdXNlJTIwd29ya2VyJTIwc2Nhbm5pbmclMjB0YWJsZXQlMjBpbnZlbnRvcnl8ZW58MHx8fHwxNzcxMTg5MDM0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Warehouse Staff Scanning Stock",
+      "category": "Feature"
+    },
+    "admin_planning": {
+      "url": "https://images.unsplash.com/photo-1768796372063-4da660e034b8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxlbGVjdHJpY2FsJTIwd2FyZWhvdXNlJTIwd29ya2VyJTIwc2Nhbm5pbmclMjB0YWJsZXQlMjBpbnZlbnRvcnl8ZW58MHx8fHwxNzcxMTg5MDM0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Admin Planning Dashboard",
+      "category": "Feature"
+    },
+    "products": [
+      {
+        "url": "https://images.unsplash.com/photo-1606676539940-12768ce0e762?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwzfHxwb3dlciUyMGRyaWxsJTIwdG9vbHxlbnwwfHx8fDE3NzExODkwNDF8MA&ixlib=rb-4.1.0&q=85",
+        "alt": "Cordless Power Drill",
+        "category": "Catalogue"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1648020265916-7d1d3a183a4c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwyfHxjb3BwZXIlMjBlbGVjdHJpY2FsJTIwd2lyZSUyMHJvbGx8ZW58MHx8fHwxNzcxMTg5MDQyfDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Copper Wire Rolls",
+        "category": "Catalogue"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1769013649427-31c0d746bd7b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwd2FyZWhvdXNlJTIwd29ya2VyJTIwc2Nhbm5pbmclMjB0YWJsZXQlMjBpbnZlbnRvcnl8ZW58MHx8fHwxNzcxMTg5MDQzfDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Industrial Circuit Breakers",
+        "category": "Catalogue"
+      }
+    ]
+  },
+  "libraries": {
+    "charts": "Recharts (Mandatory for Admin Dashboard)",
+    "icons": "Lucide React (Default)",
+    "dates": "date-fns",
+    "toast": "sonner"
+  },
+  "universal_guidelines": {
+    "keyboard_nav": "Every actionable element MUST be reachable via Tab. Add 'hotkey' hints (e.g., [Ctrl+K]) in UI labels.",
+    "density": "Reduce default padding by 20% in the dashboard tables to fit more rows.",
+    "alignment": "Numbers in tables must be Right Aligned. Status badges Center Aligned. Text Left Aligned.",
+    "feedback": "Show a toast notification for EVERY successful action (Add to cart, Saved, Deleted).",
+    "empty_states": "Never leave a table empty. Show a 'No items found' state with a clear CTA to add item."
+  },
+  "instructions_to_main_agent": [
+    "1. Setup the Theme first. Update tailwind.config.js with the 'colors' object defined here.",
+    "2. Install 'recharts' if not present.",
+    "3. Build the 'Public' pages using the 'Tetris Grid' layout.",
+    "4. Build the 'Dashboard' using the 'High Density' layout.",
+    "5. Ensure the 'Mark as Picked' workflow is ONE CLICK or ONE SCAN.",
+    "6. Use the provided Image URLs for the catalogue and hero sections.",
+    "7. CRITICAL: Add data-testid to all interactive elements."
+  ]
+}
