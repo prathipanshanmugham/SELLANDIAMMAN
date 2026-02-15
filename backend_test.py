@@ -36,6 +36,9 @@ class SellandiammanTradersAPITester:
     def run_test(self, name: str, method: str, endpoint: str, expected_status: int, 
                  data: Dict = None, headers: Dict = None, use_token: str = None):
         """Run a single API test"""
+        # Ensure trailing slash for certain endpoints to avoid 307 redirects
+        if endpoint in ['employees', 'products', 'orders']:
+            endpoint = endpoint + '/'
         url = f"{self.base_url}/api/{endpoint}" if not endpoint.startswith('http') else endpoint
         
         test_headers = {'Content-Type': 'application/json'}
