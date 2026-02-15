@@ -245,7 +245,7 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 # ==================== EMPLOYEE ROUTES ====================
 
-@employees_router.post("/", response_model=EmployeeResponse)
+@employees_router.post("", response_model=EmployeeResponse)
 async def create_employee(employee: EmployeeCreate, user: dict = Depends(require_admin)):
     existing = await db.employees.find_one({"email": employee.email})
     if existing:
@@ -271,7 +271,7 @@ async def create_employee(employee: EmployeeCreate, user: dict = Depends(require
         created_at=doc["created_at"]
     )
 
-@employees_router.get("/", response_model=List[EmployeeResponse])
+@employees_router.get("", response_model=List[EmployeeResponse])
 async def get_employees(user: dict = Depends(require_admin)):
     employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return [EmployeeResponse(**emp) for emp in employees]
@@ -298,7 +298,7 @@ async def toggle_employee_status(employee_id: str, user: dict = Depends(require_
 
 # ==================== PRODUCT ROUTES ====================
 
-@products_router.post("/", response_model=ProductResponse)
+@products_router.post("", response_model=ProductResponse)
 async def create_product(product: ProductCreate, user: dict = Depends(require_admin)):
     existing = await db.products.find_one({"sku": product.sku})
     if existing:
@@ -318,7 +318,7 @@ async def create_product(product: ProductCreate, user: dict = Depends(require_ad
     
     return ProductResponse(**doc)
 
-@products_router.get("/", response_model=List[ProductResponse])
+@products_router.get("", response_model=List[ProductResponse])
 async def get_products(
     search: Optional[str] = None,
     category: Optional[str] = None,
@@ -434,7 +434,7 @@ async def generate_order_number():
     count = await db.orders.count_documents({"order_number": {"$regex": f"^ORD-{today}"}})
     return f"ORD-{today}-{str(count + 1).zfill(4)}"
 
-@orders_router.post("/", response_model=OrderResponse)
+@orders_router.post("", response_model=OrderResponse)
 async def create_order(order: OrderCreate, user: dict = Depends(get_current_user)):
     order_number = await generate_order_number()
     
@@ -469,7 +469,7 @@ async def create_order(order: OrderCreate, user: dict = Depends(get_current_user
     
     return OrderResponse(**order_doc)
 
-@orders_router.get("/", response_model=List[OrderResponse])
+@orders_router.get("", response_model=List[OrderResponse])
 async def get_orders(
     status: Optional[str] = None,
     user: dict = Depends(get_current_user)
