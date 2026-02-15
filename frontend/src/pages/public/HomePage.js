@@ -12,7 +12,7 @@ const HomePage = () => {
         <meta name="description" content="Sellandiamman Traders - Your trusted electrical partner in Perundurai. 10,000+ quality electrical products including wires, cables, MCBs, switches, power tools. Wholesale & retail. Call: 96987 86056" />
         <meta property="og:title" content="Sellandiamman Traders | Best Electrical Store in Perundurai" />
         <meta property="og:description" content="Your trusted electrical partner with 10,000+ quality products. Wires, cables, MCBs, switches, power tools at best prices." />
-        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/" />
+        <link rel="canonical" href={window.location.origin + "/"} />
       </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">

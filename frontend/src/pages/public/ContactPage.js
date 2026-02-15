@@ -12,7 +12,7 @@ const ContactPage = () => {
         <meta name="description" content="Contact Sellandiamman Traders at 199, Kunnathur Rd, Perundurai, Erode. Call: 96987 86056, 9842823300. Open Mon-Sat 9AM-8PM. Your trusted electrical partner." />
         <meta property="og:title" content="Contact Us | Sellandiamman Traders" />
         <meta property="og:description" content="Visit our store at 199, Kunnathur Rd, Perundurai or call us at 96987 86056 for all your electrical needs." />
-        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/contact" />
+        <link rel="canonical" href={window.location.origin + "/contact"} />
       </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">

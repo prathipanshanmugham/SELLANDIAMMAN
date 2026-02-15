@@ -57,7 +57,7 @@ const CataloguePage = () => {
         <meta name="description" content="Browse 10,000+ electrical products at Sellandiamman Traders. Wires, cables, MCBs, switches, power tools, lighting from top brands like Havells, Schneider, Legrand, Philips." />
         <meta property="og:title" content="Product Catalogue | Sellandiamman Traders" />
         <meta property="og:description" content="Browse our extensive range of electrical products. Quality wires, cables, MCBs, switches, and more." />
-        <link rel="canonical" href="https://sellandia-inventory.preview.emergentagent.com/catalogue" />
+        <link rel="canonical" href={window.location.origin + "/catalogue"} />
       </Helmet>
       {/* Navigation */}
       <nav className="bg-industrial-blue text-white">
