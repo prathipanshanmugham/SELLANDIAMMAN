@@ -106,7 +106,7 @@ const PicklistPage = () => {
 
         {/* Order Info */}
         <div className="card-industrial mb-6">
-          <div className="p-4 grid sm:grid-cols-4 gap-4">
+          <div className="p-4 grid sm:grid-cols-5 gap-4">
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Order #</p>
               <p className="font-mono font-bold text-industrial-blue">{order.order_number}</p>
@@ -114,6 +114,10 @@ const PicklistPage = () => {
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Customer</p>
               <p className="font-medium">{order.customer_name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Created By</p>
+              <p className="font-medium text-industrial-orange">{order.created_by_name}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Date</p>
