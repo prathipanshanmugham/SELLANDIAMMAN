@@ -1,0 +1,29 @@
+{
+  "short_name": "Sellandiamman",
+  "name": "Sellandiamman Traders - Electrical Store",
+  "description": "Your trusted electrical partner in Perundurai with 10,000+ quality products",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "favicon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "favicon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#002D62",
+  "background_color": "#F1F5F9",
+  "categories": ["shopping", "business"],
+  "lang": "en-IN",
+  "orientation": "portrait-primary"
+}
