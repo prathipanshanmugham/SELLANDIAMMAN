@@ -127,15 +127,15 @@ const CreateOrder = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in px-0">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-slate-900">Create Order</h1>
-        <p className="text-slate-500 text-sm mt-1">Add items to create a new sales order</p>
+        <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Create Order</h1>
+        <p className="text-slate-500 text-xs sm:text-sm mt-1">Add items to create a new sales order</p>
       </div>
 
       {/* Customer Name */}
-      <div className="card-industrial p-4">
-        <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+      <div className="card-industrial p-3 sm:p-4">
+        <Label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wider">
           Customer Name *
         </Label>
         <Input
@@ -143,15 +143,15 @@ const CreateOrder = () => {
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           placeholder="Enter customer name"
-          className="mt-2 input-industrial"
+          className="mt-2 h-11 sm:h-12 text-base"
         />
       </div>
 
       {/* Add Item */}
-      <div className="card-industrial p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="card-industrial p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex-1 relative">
-            <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+            <Label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wider">
               SKU / Product Name
             </Label>
             <div className="relative mt-2">
@@ -163,7 +163,7 @@ const CreateOrder = () => {
                 onChange={(e) => setSkuInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type SKU or name..."
-                className="pl-10 input-industrial"
+                className="pl-10 h-11 sm:h-12 text-base"
               />
             </div>
             
@@ -175,9 +175,45 @@ const CreateOrder = () => {
                     key={product.sku}
                     data-testid={`search-option-${product.sku}`}
                     onClick={() => addItem(product)}
-                    className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-mono text-xs sm:text-sm text-industrial-blue font-bold">{product.sku}</span>
+                        <p className="text-xs sm:text-sm font-medium truncate">{product.product_name}</p>
+                      </div>
+                      <div className="text-right text-xs flex-shrink-0">
+                        <p className="font-mono text-industrial-orange">{product.full_location_code}</p>
+                        <p className="text-slate-500">Stock: {product.quantity_available}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-3 items-end">
+            <div className="w-20 sm:w-24">
+              <Label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                Qty
+              </Label>
+              <Input
+                ref={qtyInputRef}
+                data-testid="qty-input"
+                type="number"
+                value={qtyInput}
+                onChange={(e) => setQtyInput(parseInt(e.target.value) || 1)}
+                min={1}
+                className="mt-2 h-11 sm:h-12 text-center font-mono text-base"
+              />
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mt-2">
+          Type to search • Enter to add first result
+        </p>
+      </div>
                       <div>
                         <span className="font-mono text-sm text-industrial-blue font-bold">{product.sku}</span>
                         <p className="text-sm font-medium">{product.product_name}</p>
