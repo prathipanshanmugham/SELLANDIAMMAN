@@ -68,90 +68,90 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card-industrial p-4" data-testid="stat-total-products">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="card-industrial p-3 sm:p-4" data-testid="stat-total-products">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Total Products</p>
-              <p className="font-heading text-3xl font-bold text-slate-900 mt-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold truncate">Total Products</p>
+              <p className="font-heading text-xl sm:text-3xl font-bold text-slate-900 mt-1">
                 {stats?.total_products?.toLocaleString() || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-industrial-blue/10 rounded-sm flex items-center justify-center">
-              <Package className="w-6 h-6 text-industrial-blue" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-industrial-blue/10 rounded-sm flex items-center justify-center flex-shrink-0 ml-2">
+              <Package className="w-5 h-5 sm:w-6 sm:h-6 text-industrial-blue" />
             </div>
           </div>
         </div>
 
-        <div className="card-industrial p-4" data-testid="stat-total-stock">
+        <div className="card-industrial p-3 sm:p-4" data-testid="stat-total-stock">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Stock Units</p>
-              <p className="font-heading text-3xl font-bold text-slate-900 mt-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold truncate">Stock Units</p>
+              <p className="font-heading text-xl sm:text-3xl font-bold text-slate-900 mt-1">
                 {stats?.total_stock_units?.toLocaleString() || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-sm flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-sm flex items-center justify-center flex-shrink-0 ml-2">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="card-industrial p-4" data-testid="stat-low-stock">
+        <div className="card-industrial p-3 sm:p-4" data-testid="stat-low-stock">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Low Stock</p>
-              <p className="font-heading text-3xl font-bold text-red-600 mt-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold truncate">Low Stock</p>
+              <p className="font-heading text-xl sm:text-3xl font-bold text-red-600 mt-1">
                 {stats?.low_stock_items || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-red-100 rounded-sm flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-sm flex items-center justify-center flex-shrink-0 ml-2">
+              <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
             </div>
           </div>
         </div>
 
-        <div className="card-industrial p-4" data-testid="stat-orders-today">
+        <div className="card-industrial p-3 sm:p-4" data-testid="stat-orders-today">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Orders Today</p>
-              <p className="font-heading text-3xl font-bold text-slate-900 mt-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold truncate">Orders Today</p>
+              <p className="font-heading text-xl sm:text-3xl font-bold text-slate-900 mt-1">
                 {stats?.sales_today || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-industrial-orange/10 rounded-sm flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-industrial-orange" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-industrial-orange/10 rounded-sm flex items-center justify-center flex-shrink-0 ml-2">
+              <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-industrial-orange" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to="/admin/products/new">
-          <Button data-testid="quick-add-product" className="w-full btn-primary h-12 justify-start">
-            <Plus className="w-5 h-5 mr-2" />
-            Add Product
+          <Button data-testid="quick-add-product" className="w-full btn-primary h-10 sm:h-12 justify-start text-xs sm:text-sm px-3 sm:px-4">
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Add Product</span>
           </Button>
         </Link>
         <Link to="/staff/orders/new">
-          <Button data-testid="quick-create-order" className="w-full btn-action h-12 justify-start">
-            <ShoppingCart className="w-5 h-5 mr-2" />
-            Create Order
+          <Button data-testid="quick-create-order" className="w-full btn-action h-10 sm:h-12 justify-start text-xs sm:text-sm px-3 sm:px-4">
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Create Order</span>
           </Button>
         </Link>
         <Link to="/admin/products?low_stock=true">
-          <Button data-testid="quick-view-low-stock" className="w-full btn-secondary h-12 justify-start">
-            <AlertTriangle className="w-5 h-5 mr-2" />
-            View Low Stock
+          <Button data-testid="quick-view-low-stock" className="w-full btn-secondary h-10 sm:h-12 justify-start text-xs sm:text-sm px-3 sm:px-4">
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Low Stock</span>
           </Button>
         </Link>
         <Link to="/admin/orders?status=pending">
-          <Button data-testid="quick-pending-orders" className="w-full btn-secondary h-12 justify-start">
-            <Clock className="w-5 h-5 mr-2" />
-            Pending: {stats?.orders_pending || 0}
+          <Button data-testid="quick-pending-orders" className="w-full btn-secondary h-10 sm:h-12 justify-start text-xs sm:text-sm px-3 sm:px-4">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Pending: {stats?.orders_pending || 0}</span>
           </Button>
         </Link>
       </div>
