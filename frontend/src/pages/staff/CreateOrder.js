@@ -234,70 +234,73 @@ const CreateOrder = () => {
               <div 
                 key={item.sku}
                 data-testid={`order-item-${item.sku}`}
-                className="flex items-center gap-4 p-4"
+                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4"
               >
-                <div className="w-8 h-8 bg-industrial-blue text-white rounded-sm flex items-center justify-center font-bold">
-                  {idx + 1}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-industrial-blue text-white rounded-sm flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-xs sm:text-sm text-industrial-blue">{item.sku}</p>
+                    <p className="font-medium text-sm sm:text-base truncate">{item.product_name}</p>
+                  </div>
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <p className="font-mono text-sm text-industrial-blue">{item.sku}</p>
-                  <p className="font-medium truncate">{item.product_name}</p>
-                </div>
-                
-                <div className="flex items-center gap-2 text-industrial-orange">
-                  <MapPin className="w-4 h-4" />
-                  <span className="font-mono text-sm">{item.full_location_code}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateQuantity(item.sku, item.quantity_required - 1)}
-                    className="w-8 h-8 border border-slate-300 rounded-sm hover:bg-slate-100"
+                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 ml-10 sm:ml-0">
+                  <div className="flex items-center gap-1 text-industrial-orange">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-mono text-xs sm:text-sm">{item.full_location_code}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <button
+                      onClick={() => updateQuantity(item.sku, item.quantity_required - 1)}
+                      className="w-7 h-7 sm:w-8 sm:h-8 border border-slate-300 rounded-sm hover:bg-slate-100 text-sm"
+                    >
+                      -
+                    </button>
+                    <Input
+                      type="number"
+                      value={item.quantity_required}
+                      onChange={(e) => updateQuantity(item.sku, parseInt(e.target.value) || 1)}
+                      className="w-12 sm:w-16 h-7 sm:h-8 text-center font-mono text-sm"
+                      min={1}
+                    />
+                    <button
+                      onClick={() => updateQuantity(item.sku, item.quantity_required + 1)}
+                      className="w-7 h-7 sm:w-8 sm:h-8 border border-slate-300 rounded-sm hover:bg-slate-100 text-sm"
+                    >
+                      +
+                    </button>
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeItem(item.sku)}
+                    className="text-red-600 hover:text-red-700 p-1 sm:p-2"
                   >
-                    -
-                  </button>
-                  <Input
-                    type="number"
-                    value={item.quantity_required}
-                    onChange={(e) => updateQuantity(item.sku, parseInt(e.target.value) || 1)}
-                    className="w-16 h-8 text-center font-mono"
-                    min={1}
-                  />
-                  <button
-                    onClick={() => updateQuantity(item.sku, item.quantity_required + 1)}
-                    className="w-8 h-8 border border-slate-300 rounded-sm hover:bg-slate-100"
-                  >
-                    +
-                  </button>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeItem(item.sku)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center">
-            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500">No items added yet</p>
+          <div className="p-6 sm:p-8 text-center">
+            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">No items added yet</p>
             <p className="text-xs text-slate-400 mt-1">Search and add products above</p>
           </div>
         )}
       </div>
 
       {/* Submit */}
-      <div className="flex gap-4 justify-end">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-end">
         <Button
           variant="outline"
           onClick={() => navigate('/staff/orders')}
-          className="btn-secondary"
+          className="btn-secondary order-2 sm:order-1"
         >
           Cancel
         </Button>
