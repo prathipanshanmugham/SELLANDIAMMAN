@@ -151,63 +151,65 @@ const PicklistPage = () => {
                 className={`card-industrial overflow-hidden ${isPicked ? 'opacity-60' : ''}`}
               >
                 <div className={`
-                  flex flex-col sm:flex-row sm:items-center gap-4 p-4
+                  flex flex-col gap-3 p-3 sm:p-4
                   ${isPicked ? 'bg-green-50' : 'bg-white'}
                 `}>
-                  {/* Item Number */}
-                  <div className={`
-                    w-12 h-12 rounded-sm flex items-center justify-center font-bold text-xl flex-shrink-0
-                    ${isPicked ? 'bg-green-600 text-white' : 'bg-industrial-blue text-white'}
-                  `}>
-                    {isPicked ? <Check className="w-6 h-6" /> : index + 1}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 mb-1">
-                      <span className="font-mono text-sm px-2 py-0.5 bg-slate-100 rounded">
-                        {item.sku}
-                      </span>
-                      {isPicked && (
-                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-bold">
-                          PICKED
-                        </span>
-                      )}
+                  {/* Mobile: Top row with number, SKU, status */}
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-10 h-10 sm:w-12 sm:h-12 rounded-sm flex items-center justify-center font-bold text-lg sm:text-xl flex-shrink-0
+                      ${isPicked ? 'bg-green-600 text-white' : 'bg-industrial-blue text-white'}
+                    `}>
+                      {isPicked ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : index + 1}
                     </div>
-                    <h3 className="font-heading text-lg font-bold text-slate-900">
-                      {item.product_name}
-                    </h3>
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 px-4 py-2 bg-industrial-orange/10 rounded-sm">
-                    <MapPin className="w-5 h-5 text-industrial-orange" />
-                    <span className="font-mono text-lg font-bold text-industrial-orange">
-                      {item.full_location_code}
-                    </span>
-                  </div>
-
-                  {/* Quantity */}
-                  <div className="text-center px-4">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Qty</p>
-                    <p className="font-mono text-3xl font-bold text-slate-900">
-                      {item.quantity_required}
-                    </p>
-                  </div>
-
-                  {/* Pick Button */}
-                  <div className="flex-shrink-0">
-                    {isPicked ? (
-                      <div className="w-32 h-12 bg-green-600 rounded-sm flex items-center justify-center text-white font-bold">
-                        <Check className="w-5 h-5 mr-2" />
-                        Done
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs sm:text-sm px-2 py-0.5 bg-slate-100 rounded">
+                          {item.sku}
+                        </span>
+                        {isPicked && (
+                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-bold">
+                            PICKED
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <Button
-                        data-testid={`pick-item-${item.sku}`}
-                        onClick={() => handleMarkPicked(item.id)}
-                        disabled={pickingItem === item.id}
-                        className="w-32 h-12 btn-action"
+                      <h3 className="font-heading text-base sm:text-lg font-bold text-slate-900 truncate">
+                        {item.product_name}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Mobile: Location + Qty + Button row */}
+                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
+                    {/* Location - prominent */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-industrial-orange/10 rounded-sm flex-1 sm:flex-none">
+                      <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-industrial-orange flex-shrink-0" />
+                      <span className="font-mono text-base sm:text-lg font-bold text-industrial-orange">
+                        {item.full_location_code}
+                      </span>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="text-center px-3 sm:px-4">
+                      <p className="text-xs text-slate-500 uppercase tracking-wider">Qty</p>
+                      <p className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">
+                        {item.quantity_required}
+                      </p>
+                    </div>
+
+                    {/* Pick Button */}
+                    <div className="flex-shrink-0">
+                      {isPicked ? (
+                        <div className="w-24 sm:w-32 h-10 sm:h-12 bg-green-600 rounded-sm flex items-center justify-center text-white font-bold text-sm sm:text-base">
+                          <Check className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+                          Done
+                        </div>
+                      ) : (
+                        <Button
+                          data-testid={`pick-item-${item.sku}`}
+                          onClick={() => handleMarkPicked(item.id)}
+                          disabled={pickingItem === item.id}
+                          className="w-24 sm:w-32 h-10 sm:h-12 btn-action text-sm sm:text-base"
                       >
                         {pickingItem === item.id ? (
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
