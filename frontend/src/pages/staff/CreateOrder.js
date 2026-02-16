@@ -214,45 +214,11 @@ const CreateOrder = () => {
           Type to search • Enter to add first result
         </p>
       </div>
-                      <div>
-                        <span className="font-mono text-sm text-industrial-blue font-bold">{product.sku}</span>
-                        <p className="text-sm font-medium">{product.product_name}</p>
-                      </div>
-                      <div className="text-right text-xs">
-                        <p className="font-mono text-industrial-orange">{product.full_location_code}</p>
-                        <p className="text-slate-500">Stock: {product.quantity_available}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <div className="w-24">
-            <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
-              Qty
-            </Label>
-            <Input
-              ref={qtyInputRef}
-              data-testid="qty-input"
-              type="number"
-              value={qtyInput}
-              onChange={(e) => setQtyInput(parseInt(e.target.value) || 1)}
-              min={1}
-              className="mt-2 input-industrial text-center font-mono"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-slate-400 mt-2">
-          Type to search • Press Enter to add first result • [Tab] to move between fields
-        </p>
-      </div>
 
       {/* Items List */}
       <div className="card-industrial overflow-hidden">
-        <div className="border-b border-slate-100 p-4 bg-slate-50/50 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-slate-900">
+        <div className="border-b border-slate-100 p-3 sm:p-4 bg-slate-50/50 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-slate-900 text-sm sm:text-base">
             Order Items
             {items.length > 0 && (
               <span className="ml-2 px-2 py-0.5 bg-industrial-blue text-white text-xs font-bold rounded">
