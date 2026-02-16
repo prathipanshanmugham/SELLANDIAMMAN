@@ -126,89 +126,144 @@ const StaffPage = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-industrial-blue"></div>
           </div>
         ) : employees.length === 0 ? (
-          <div className="p-12 text-center">
-            <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="font-heading text-xl font-bold text-slate-700">No Employees</h3>
-            <p className="text-slate-500 mt-2 mb-6">Add staff members to manage your inventory</p>
+          <div className="p-8 sm:p-12 text-center">
+            <Users className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-700">No Employees</h3>
+            <p className="text-slate-500 mt-2 mb-6 text-sm">Add staff members to manage your inventory</p>
             <Button onClick={() => setShowAddDialog(true)} className="btn-primary">
               <Plus className="w-4 h-4 mr-2" />
               Add Staff
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="table-header text-left">Name</th>
-                  <th className="table-header text-left">Email</th>
-                  <th className="table-header text-center">Role</th>
-                  <th className="table-header text-center">Status</th>
-                  <th className="table-header text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((emp) => (
-                  <tr key={emp.id} className="table-row" data-testid={`staff-row-${emp.email}`}>
-                    <td className="table-cell">
-                      <div className="flex items-center gap-3">
-                        <div className={`
-                          w-10 h-10 rounded-full flex items-center justify-center font-bold text-white
-                          ${emp.role === 'admin' ? 'bg-industrial-orange' : 'bg-industrial-blue'}
-                        `}>
-                          {emp.name.charAt(0).toUpperCase()}
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header text-left">Name</th>
+                    <th className="table-header text-left">Email</th>
+                    <th className="table-header text-center">Role</th>
+                    <th className="table-header text-center">Status</th>
+                    <th className="table-header text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp) => (
+                    <tr key={emp.id} className="table-row" data-testid={`staff-row-${emp.email}`}>
+                      <td className="table-cell">
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            w-10 h-10 rounded-full flex items-center justify-center font-bold text-white
+                            ${emp.role === 'admin' ? 'bg-industrial-orange' : 'bg-industrial-blue'}
+                          `}>
+                            {emp.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium">{emp.name}</span>
                         </div>
-                        <span className="font-medium">{emp.name}</span>
+                      </td>
+                      <td className="table-cell text-slate-600">{emp.email}</td>
+                      <td className="table-cell text-center">
+                        <span className={`
+                          inline-flex items-center gap-1 px-2 py-1 text-xs font-bold uppercase tracking-wider rounded
+                          ${emp.role === 'admin' 
+                            ? 'bg-industrial-orange/10 text-industrial-orange' 
+                            : 'bg-industrial-blue/10 text-industrial-blue'}
+                        `}>
+                          {emp.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserCog className="w-3 h-3" />}
+                          {emp.role}
+                        </span>
+                      </td>
+                      <td className="table-cell text-center">
+                        <button
+                          onClick={() => handleToggleStatus(emp.id)}
+                          data-testid={`toggle-status-${emp.email}`}
+                          className="inline-flex items-center gap-2"
+                        >
+                          {emp.status === 'active' ? (
+                            <>
+                              <ToggleRight className="w-6 h-6 text-green-600" />
+                              <span className="text-sm text-green-600 font-medium">Active</span>
+                            </>
+                          ) : (
+                            <>
+                              <ToggleLeft className="w-6 h-6 text-slate-400" />
+                              <span className="text-sm text-slate-400">Inactive</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+                      <td className="table-cell text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          data-testid={`delete-staff-${emp.email}`}
+                          onClick={() => setDeleteId(emp.id)}
+                          className="text-red-600 hover:text-red-700"
+                          disabled={emp.role === 'admin'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {employees.map((emp) => (
+                <div key={emp.id} data-testid={`staff-card-${emp.email}`} className="p-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0
+                      ${emp.role === 'admin' ? 'bg-industrial-orange' : 'bg-industrial-blue'}
+                    `}>
+                      {emp.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{emp.name}</span>
+                        <span className={`
+                          text-[10px] px-1.5 py-0.5 font-bold uppercase rounded
+                          ${emp.role === 'admin' 
+                            ? 'bg-industrial-orange/10 text-industrial-orange' 
+                            : 'bg-industrial-blue/10 text-industrial-blue'}
+                        `}>
+                          {emp.role}
+                        </span>
                       </div>
-                    </td>
-                    <td className="table-cell text-slate-600">{emp.email}</td>
-                    <td className="table-cell text-center">
-                      <span className={`
-                        inline-flex items-center gap-1 px-2 py-1 text-xs font-bold uppercase tracking-wider rounded
-                        ${emp.role === 'admin' 
-                          ? 'bg-industrial-orange/10 text-industrial-orange' 
-                          : 'bg-industrial-blue/10 text-industrial-blue'}
-                      `}>
-                        {emp.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserCog className="w-3 h-3" />}
-                        {emp.role}
-                      </span>
-                    </td>
-                    <td className="table-cell text-center">
+                      <p className="text-xs text-slate-500 truncate">{emp.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleToggleStatus(emp.id)}
-                        data-testid={`toggle-status-${emp.email}`}
-                        className="inline-flex items-center gap-2"
+                        className="p-1"
                       >
                         {emp.status === 'active' ? (
-                          <>
-                            <ToggleRight className="w-6 h-6 text-green-600" />
-                            <span className="text-sm text-green-600 font-medium">Active</span>
-                          </>
+                          <ToggleRight className="w-6 h-6 text-green-600" />
                         ) : (
-                          <>
-                            <ToggleLeft className="w-6 h-6 text-slate-400" />
-                            <span className="text-sm text-slate-400">Inactive</span>
-                          </>
+                          <ToggleLeft className="w-6 h-6 text-slate-400" />
                         )}
                       </button>
-                    </td>
-                    <td className="table-cell text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid={`delete-staff-${emp.email}`}
-                        onClick={() => setDeleteId(emp.id)}
-                        className="text-red-600 hover:text-red-700"
-                        disabled={emp.role === 'admin'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {emp.role !== 'admin' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(emp.id)}
+                          className="p-1 h-8 w-8"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
