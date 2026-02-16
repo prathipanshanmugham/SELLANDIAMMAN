@@ -138,10 +138,10 @@ const OrdersPage = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-industrial-blue"></div>
           </div>
         ) : orders.length === 0 ? (
-          <div className="p-12 text-center">
-            <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="font-heading text-xl font-bold text-slate-700">No Orders Found</h3>
-            <p className="text-slate-500 mt-2 mb-6">
+          <div className="p-8 sm:p-12 text-center">
+            <ShoppingCart className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-700">No Orders Found</h3>
+            <p className="text-slate-500 mt-2 mb-6 text-sm">
               {statusFilter !== 'all' ? 'Try changing the filter' : 'Create your first order'}
             </p>
             <Link to={`${basePath === '/admin' ? '/staff' : basePath}/orders/new`}>
@@ -152,68 +152,104 @@ const OrdersPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="table-header text-left">Order #</th>
-                  <th className="table-header text-left">Customer</th>
-                  <th className="table-header text-center">Items</th>
-                  <th className="table-header text-center">Status</th>
-                  <th className="table-header text-left">Created By</th>
-                  <th className="table-header text-left">Date</th>
-                  <th className="table-header text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id} className="table-row" data-testid={`order-row-${order.order_number}`}>
-                    <td className="table-cell-mono font-bold text-industrial-blue">
-                      {order.order_number}
-                    </td>
-                    <td className="table-cell font-medium">{order.customer_name}</td>
-                    <td className="table-cell text-center">
-                      <span className="px-2 py-1 bg-slate-100 text-slate-700 text-sm font-bold rounded">
-                        {order.items.length}
-                      </span>
-                    </td>
-                    <td className="table-cell text-center">
-                      {getStatusBadge(order.status)}
-                    </td>
-                    <td className="table-cell text-slate-600">{order.created_by_name}</td>
-                    <td className="table-cell text-slate-500 text-sm">
-                      {format(new Date(order.created_at), 'dd MMM yyyy, HH:mm')}
-                    </td>
-                    <td className="table-cell">
-                      <div className="flex items-center justify-center gap-2">
-                        <Link to={`${basePath}/orders/${order.id}`}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            data-testid={`view-order-${order.order_number}`}
-                            className="text-industrial-blue hover:text-industrial-blue-dark"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        {isAdmin() && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid={`delete-order-${order.order_number}`}
-                            onClick={() => setDeleteId(order.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header text-left">Order #</th>
+                    <th className="table-header text-left">Customer</th>
+                    <th className="table-header text-center">Items</th>
+                    <th className="table-header text-center">Status</th>
+                    <th className="table-header text-left">Created By</th>
+                    <th className="table-header text-left">Date</th>
+                    <th className="table-header text-center">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order.id} className="table-row" data-testid={`order-row-${order.order_number}`}>
+                      <td className="table-cell-mono font-bold text-industrial-blue">
+                        {order.order_number}
+                      </td>
+                      <td className="table-cell font-medium">{order.customer_name}</td>
+                      <td className="table-cell text-center">
+                        <span className="px-2 py-1 bg-slate-100 text-slate-700 text-sm font-bold rounded">
+                          {order.items.length}
+                        </span>
+                      </td>
+                      <td className="table-cell text-center">
+                        {getStatusBadge(order.status)}
+                      </td>
+                      <td className="table-cell text-slate-600">{order.created_by_name}</td>
+                      <td className="table-cell text-slate-500 text-sm">
+                        {format(new Date(order.created_at), 'dd MMM yyyy, HH:mm')}
+                      </td>
+                      <td className="table-cell">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link to={`${basePath}/orders/${order.id}`}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              data-testid={`view-order-${order.order_number}`}
+                              className="text-industrial-blue hover:text-industrial-blue-dark"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          {isAdmin() && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              data-testid={`delete-order-${order.order_number}`}
+                              onClick={() => setDeleteId(order.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {orders.map((order) => (
+                <Link 
+                  key={order.id}
+                  to={`${basePath}/orders/${order.id}`}
+                  data-testid={`order-card-${order.order_number}`}
+                  className="block p-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-bold text-industrial-blue">
+                          {order.order_number}
+                        </span>
+                        {getStatusBadge(order.status)}
+                      </div>
+                      <p className="font-medium text-sm mt-1 truncate">{order.customer_name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {order.created_by_name} • {format(new Date(order.created_at), 'dd MMM, HH:mm')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded">
+                        {order.items.length} items
+                      </span>
+                      <Eye className="w-4 h-4 text-slate-400" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
