@@ -105,33 +105,33 @@ const PicklistPage = () => {
         </div>
 
         {/* Order Info */}
-        <div className="card-industrial mb-6">
-          <div className="p-4 grid sm:grid-cols-5 gap-4">
+        <div className="card-industrial mb-4 sm:mb-6">
+          <div className="p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Order #</p>
-              <p className="font-mono font-bold text-industrial-blue">{order.order_number}</p>
+              <p className="font-mono font-bold text-industrial-blue text-sm sm:text-base truncate">{order.order_number}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Customer</p>
-              <p className="font-medium">{order.customer_name}</p>
+              <p className="font-medium text-sm sm:text-base truncate">{order.customer_name}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Created By</p>
-              <p className="font-medium text-industrial-orange">{order.created_by_name}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Staff</p>
+              <p className="font-medium text-industrial-orange text-sm sm:text-base">{order.created_by_name}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Date</p>
-              <p className="text-sm">{format(new Date(order.created_at), 'dd MMM yyyy, HH:mm')}</p>
+              <p className="text-xs sm:text-sm">{format(new Date(order.created_at), 'dd MMM, HH:mm')}</p>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</p>
               {allPicked ? (
-                <span className="inline-flex items-center gap-1 text-green-600 font-bold">
+                <span className="inline-flex items-center gap-1 text-green-600 font-bold text-sm">
                   <CheckCircle className="w-4 h-4" />
                   Completed
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-amber-600 font-bold">
+                <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm">
                   <Clock className="w-4 h-4" />
                   Pending
                 </span>
@@ -141,7 +141,7 @@ const PicklistPage = () => {
         </div>
 
         {/* Items */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {order.items.map((item, index) => {
             const isPicked = item.picking_status === 'picked';
             return (
