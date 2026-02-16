@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '../../components/ui/button';
 import { Zap, Package, MapPin, Phone, ArrowRight, Shield, Truck, Clock } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
+import PublicNavbar from '../../components/common/PublicNavbar';
 
 const HomePage = () => {
   return (
@@ -14,37 +15,8 @@ const HomePage = () => {
         <meta property="og:description" content="Your trusted electrical partner with 10,000+ quality products. Wires, cables, MCBs, switches, power tools at best prices." />
         <link rel="canonical" href={window.location.origin + "/"} />
       </Helmet>
-      {/* Navigation */}
-      <nav className="bg-industrial-blue text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-industrial-orange rounded-sm flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="font-heading text-lg font-bold tracking-tight">SELLANDIAMMAN</h1>
-                <p className="text-xs text-slate-300">Traders</p>
-              </div>
-            </Link>
-            
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/" className="text-white font-medium hover:text-industrial-orange transition-colors">Home</Link>
-              <Link to="/catalogue" className="text-slate-300 hover:text-white transition-colors">Catalogue</Link>
-              <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link>
-            </div>
-            
-            <Link to="/login">
-              <Button 
-                data-testid="staff-login-btn"
-                className="btn-action text-sm"
-              >
-                Staff Login
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      
+      <PublicNavbar />
 
       {/* Hero Section */}
       <section className="relative bg-slate-900 text-white overflow-hidden">
