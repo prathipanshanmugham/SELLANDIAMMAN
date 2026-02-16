@@ -1,5 +1,5 @@
 # Robots.txt for Sellandiamman Traders
-# https://sellandia-inventory.preview.emergentagent.com
+# https://inventory-mobile-fix.preview.emergentagent.com
 
 User-agent: *
 Allow: /
@@ -12,7 +12,7 @@ Disallow: /staff
 Disallow: /login
 
 # Sitemap location
-Sitemap: https://sellandia-inventory.preview.emergentagent.com/sitemap.xml
+Sitemap: https://inventory-mobile-fix.preview.emergentagent.com/sitemap.xml
 
 # Crawl delay
 Crawl-delay: 1
