@@ -210,17 +210,18 @@ const PicklistPage = () => {
                           onClick={() => handleMarkPicked(item.id)}
                           disabled={pickingItem === item.id}
                           className="w-24 sm:w-32 h-10 sm:h-12 btn-action text-sm sm:text-base"
-                      >
-                        {pickingItem === item.id ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                        ) : (
-                          <>
-                            <Check className="w-5 h-5 mr-2" />
-                            Pick
-                          </>
-                        )}
-                      </Button>
-                    )}
+                        >
+                          {pickingItem === item.id ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                          ) : (
+                            <>
+                              <Check className="w-5 h-5 mr-2" />
+                              Pick
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
