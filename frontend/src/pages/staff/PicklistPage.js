@@ -242,51 +242,40 @@ const PicklistPage = () => {
         </div>
       </div>
 
-      {/* Print View - Thermal (80mm) */}
+      {/* Print View - Thermal (80mm) - Compact for minimal paper */}
       <div className="print-only thermal-print hidden">
-        <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '12px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <strong style={{ fontSize: '14px' }}>SELLANDIAMMAN TRADERS</strong>
-            <br />
-            <span style={{ fontSize: '10px' }}>Electrical Store</span>
+        <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.2' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+            <strong style={{ fontSize: '12px' }}>SELLANDIAMMAN TRADERS</strong>
           </div>
           
-          <div style={{ borderTop: '1px dashed black', borderBottom: '1px dashed black', padding: '4px 0', margin: '8px 0' }}>
-            <strong>ORDER: {order.order_number}</strong>
+          <div style={{ borderTop: '1px dashed black', padding: '2px 0', marginBottom: '4px', fontSize: '10px' }}>
+            <strong>{order.order_number}</strong> | {format(new Date(order.created_at), 'dd/MM HH:mm')}
             <br />
-            Customer: {order.customer_name}
-            <br />
-            Date: {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')}
-            <br />
-            <strong>Staff: {order.created_by_name}</strong>
+            {order.customer_name} | Staff: {order.created_by_name}
           </div>
 
           {order.items.map((item, idx) => (
-            <div key={item.id} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed #ccc' }}>
-              <strong>{idx + 1}. {item.product_name}</strong>
-              <br />
-              SKU: {item.sku}
-              <br />
-              <strong style={{ fontSize: '14px' }}>LOC: {item.full_location_code}</strong>
-              <br />
-              <strong>QTY: {item.quantity_required}</strong>
+            <div key={item.id} style={{ padding: '2px 0', borderBottom: '1px dotted #999', fontSize: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>{idx + 1}.{item.sku}</strong>
+                <strong>x{item.quantity_required}</strong>
+              </div>
+              <div>{item.product_name.length > 28 ? item.product_name.substring(0, 28) + '..' : item.product_name}</div>
+              <strong style={{ fontSize: '12px' }}>{item.full_location_code}</strong>
             </div>
           ))}
 
-          <div style={{ textAlign: 'center', marginTop: '12px', borderTop: '1px dashed black', paddingTop: '8px' }}>
-            <strong>Total Items: {order.items.length}</strong>
-            <br />
-            <span style={{ fontSize: '10px' }}>Staff: {order.created_by_name}</span>
-            <br />
-            <span style={{ fontSize: '10px' }}>Generated: {format(new Date(), 'dd/MM/yyyy HH:mm')}</span>
+          <div style={{ textAlign: 'center', marginTop: '4px', borderTop: '1px dashed black', paddingTop: '2px', fontSize: '10px' }}>
+            <strong>Items: {order.items.length}</strong> | {format(new Date(), 'dd/MM HH:mm')}
           </div>
         </div>
       </div>
 
-      {/* Print View - A4 */}
+      {/* Print styles */}
       <style>{`
         @media print {
-          @page { size: 80mm auto; margin: 5mm; }
+          @page { size: 80mm auto; margin: 2mm; }
           body * { visibility: hidden; }
           .print-only, .print-only * { visibility: visible !important; display: block !important; }
           .print-only { position: absolute; left: 0; top: 0; }
