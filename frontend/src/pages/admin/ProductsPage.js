@@ -192,17 +192,17 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* Products Table */}
+      {/* Products Table/Cards */}
       <div className="card-industrial overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-industrial-blue"></div>
           </div>
         ) : products.length === 0 ? (
-          <div className="p-12 text-center">
-            <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="font-heading text-xl font-bold text-slate-700">No Products Found</h3>
-            <p className="text-slate-500 mt-2 mb-6">
+          <div className="p-8 sm:p-12 text-center">
+            <Package className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-700">No Products Found</h3>
+            <p className="text-slate-500 mt-2 mb-6 text-sm">
               {filters.search || filters.category || filters.zone || filters.low_stock
                 ? 'Try adjusting your filters'
                 : 'Get started by adding your first product'}
@@ -215,80 +215,141 @@ const ProductsPage = () => {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="table-header text-left">SKU</th>
-                  <th className="table-header text-left">Product</th>
-                  <th className="table-header text-left">Category</th>
-                  <th className="table-header text-left">Location</th>
-                  <th className="table-header text-right">Stock</th>
-                  <th className="table-header text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => {
-                  const isLowStock = product.quantity_available <= product.reorder_level;
-                  return (
-                    <tr key={product.id} className="table-row" data-testid={`product-row-${product.sku}`}>
-                      <td className="table-cell-mono font-medium">{product.sku}</td>
-                      <td className="table-cell">
-                        <div>
-                          <p className="font-medium text-slate-900">{product.product_name}</p>
-                          {product.brand && (
-                            <p className="text-xs text-slate-500">{product.brand}</p>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header text-left">SKU</th>
+                    <th className="table-header text-left">Product</th>
+                    <th className="table-header text-left">Category</th>
+                    <th className="table-header text-left">Location</th>
+                    <th className="table-header text-right">Stock</th>
+                    <th className="table-header text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => {
+                    const isLowStock = product.quantity_available <= product.reorder_level;
+                    return (
+                      <tr key={product.id} className="table-row" data-testid={`product-row-${product.sku}`}>
+                        <td className="table-cell-mono font-medium">{product.sku}</td>
+                        <td className="table-cell">
+                          <div>
+                            <p className="font-medium text-slate-900">{product.product_name}</p>
+                            {product.brand && (
+                              <p className="text-xs text-slate-500">{product.brand}</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="table-cell">
+                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">
+                            {product.category}
+                          </span>
+                        </td>
+                        <td className="table-cell">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-slate-400" />
+                            <span className="font-mono text-sm">{product.full_location_code}</span>
+                          </div>
+                        </td>
+                        <td className="table-cell text-right">
+                          <span className={`font-bold ${isLowStock ? 'text-red-600' : 'text-green-600'}`}>
+                            {product.quantity_available}
+                          </span>
+                          {isLowStock && (
+                            <AlertTriangle className="w-4 h-4 text-red-500 inline ml-1" />
                           )}
+                        </td>
+                        <td className="table-cell">
+                          <div className="flex items-center justify-center gap-2">
+                            <Link to={`/admin/products/${product.id}/edit`}>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                data-testid={`edit-product-${product.sku}`}
+                                className="text-industrial-blue hover:text-industrial-blue-dark"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              data-testid={`delete-product-${product.sku}`}
+                              onClick={() => setDeleteId(product.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {products.map((product) => {
+                const isLowStock = product.quantity_available <= product.reorder_level;
+                return (
+                  <div 
+                    key={product.id} 
+                    data-testid={`product-card-${product.sku}`}
+                    className="p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs px-1.5 py-0.5 bg-industrial-blue text-white rounded">
+                            {product.sku}
+                          </span>
+                          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                            {product.category}
+                          </span>
                         </div>
-                      </td>
-                      <td className="table-cell">
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-slate-400" />
-                          <span className="font-mono text-sm">{product.full_location_code}</span>
-                        </div>
-                      </td>
-                      <td className="table-cell text-right">
-                        <span className={`font-bold ${isLowStock ? 'text-red-600' : 'text-green-600'}`}>
+                        <p className="font-medium text-sm mt-1 truncate">{product.product_name}</p>
+                        {product.brand && (
+                          <p className="text-xs text-slate-500">{product.brand}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Link to={`/admin/products/${product.id}/edit`}>
+                          <Button variant="ghost" size="sm" className="p-2 h-8 w-8">
+                            <Edit className="w-4 h-4 text-industrial-blue" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(product.id)}
+                          className="p-2 h-8 w-8"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 text-industrial-orange">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span className="font-mono text-xs font-medium">{product.full_location_code}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={`font-mono font-bold text-sm ${isLowStock ? 'text-red-600' : 'text-green-600'}`}>
                           {product.quantity_available}
                         </span>
-                        {isLowStock && (
-                          <AlertTriangle className="w-4 h-4 text-red-500 inline ml-1" />
-                        )}
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex items-center justify-center gap-2">
-                          <Link to={`/admin/products/${product.id}/edit`}>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              data-testid={`edit-product-${product.sku}`}
-                              className="text-industrial-blue hover:text-industrial-blue-dark"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid={`delete-product-${product.sku}`}
-                            onClick={() => setDeleteId(product.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {isLowStock && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
