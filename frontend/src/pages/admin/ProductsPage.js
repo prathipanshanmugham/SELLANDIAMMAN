@@ -111,27 +111,27 @@ const ProductsPage = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-slate-900">Products</h1>
-          <p className="text-slate-500 text-sm mt-1">{products.length} products found</p>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Products</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">{products.length} products found</p>
         </div>
         <Link to="/admin/products/new">
-          <Button data-testid="add-product-btn" className="btn-action">
-            <Plus className="w-5 h-5 mr-2" />
+          <Button data-testid="add-product-btn" className="btn-action text-sm">
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Add Product
           </Button>
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="card-industrial p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="card-industrial p-3 sm:p-4">
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-col lg:flex-row sm:gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <Input
               data-testid="products-search-input"
-              placeholder="Search SKU, name, or location..."
+              placeholder="Search SKU, name..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               className="pl-10 input-industrial"
@@ -143,7 +143,7 @@ const ProductsPage = () => {
               value={filters.category} 
               onValueChange={(v) => setFilters({ ...filters, category: v })}
             >
-              <SelectTrigger data-testid="filter-category" className="w-40 h-12">
+              <SelectTrigger data-testid="filter-category" className="w-full sm:w-36 h-12">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -158,7 +158,7 @@ const ProductsPage = () => {
               value={filters.zone} 
               onValueChange={(v) => setFilters({ ...filters, zone: v })}
             >
-              <SelectTrigger data-testid="filter-zone" className="w-32 h-12">
+              <SelectTrigger data-testid="filter-zone" className="w-24 sm:w-28 h-12">
                 <SelectValue placeholder="Zone" />
               </SelectTrigger>
               <SelectContent>
@@ -173,17 +173,17 @@ const ProductsPage = () => {
               data-testid="filter-low-stock"
               variant={filters.low_stock ? 'default' : 'outline'}
               onClick={() => setFilters({ ...filters, low_stock: !filters.low_stock })}
-              className={`h-12 ${filters.low_stock ? 'bg-red-600 hover:bg-red-700' : ''}`}
+              className={`h-12 px-3 ${filters.low_stock ? 'bg-red-600 hover:bg-red-700' : ''}`}
             >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Low Stock
+              <AlertTriangle className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Low Stock</span>
             </Button>
             
             {(filters.search || filters.category || filters.zone || filters.low_stock) && (
               <Button
                 variant="ghost"
                 onClick={clearFilters}
-                className="h-12 text-slate-500"
+                className="h-12 text-slate-500 px-3"
               >
                 Clear
               </Button>
