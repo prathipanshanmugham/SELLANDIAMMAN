@@ -279,53 +279,57 @@ const PicklistPage = () => {
         </div>
       </div>
 
-      {/* Print View - Thermal (80mm) - Compact for minimal paper */}
+      {/* Print View - Thermal (80mm) - Ultra Compact Format */}
       <div className="print-only thermal-print hidden">
-        <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.2' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-            <strong style={{ fontSize: '12px' }}>SELLANDIAMMAN TRADERS</strong>
-            <br />
-            <span style={{ fontSize: '9px' }}>Electrical & Hardware</span>
+        <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '10px', lineHeight: '1.1' }}>
+          {/* Header - Compact */}
+          <div style={{ textAlign: 'center', marginBottom: '2px' }}>
+            <strong style={{ fontSize: '11px' }}>SELLANDIAMMAN TRADERS</strong>
           </div>
           
-          <div style={{ borderTop: '1px dashed black', padding: '2px 0', marginBottom: '4px', fontSize: '10px' }}>
-            <strong>{order.order_number}</strong> | {format(new Date(order.created_at), 'dd/MM HH:mm')}
-            <br />
-            {order.customer_name} | Staff: {order.created_by_name}
+          {/* Order Info - Single Line */}
+          <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '2px 0', margin: '2px 0', fontSize: '9px' }}>
+            <strong>{order.order_number}</strong> | {format(new Date(order.created_at), 'dd/MM HH:mm')} | {order.customer_name}
           </div>
 
-          {order.items.map((item, idx) => (
-            <div key={item.id} style={{ padding: '2px 0', borderBottom: '1px dotted #999', fontSize: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>{idx + 1}.{item.sku}</strong>
-                <strong>x{item.quantity_required}</strong>
+          {/* Items - One Line Each: Product | Location | xQty */}
+          {order.items.map((item, idx) => {
+            // Compress location code: A-03-R07-S2-B05 -> A03R07S2B05
+            const compactLoc = item.full_location_code.replace(/-/g, '').replace(/R/g, 'R').replace(/S/g, 'S').replace(/B/g, 'B');
+            // Truncate product name
+            const shortName = item.product_name.length > 20 ? item.product_name.substring(0, 20) + '..' : item.product_name;
+            return (
+              <div key={item.id} style={{ fontSize: '9px', padding: '1px 0', borderBottom: '1px dotted #ccc' }}>
+                {idx + 1}. {shortName} | <strong>{compactLoc}</strong> | <strong>x{item.quantity_required}</strong>
               </div>
-              <div>{item.product_name.length > 28 ? item.product_name.substring(0, 28) + '..' : item.product_name}</div>
-              <strong style={{ fontSize: '12px' }}>{item.full_location_code}</strong>
-            </div>
-          ))}
+            );
+          })}
 
-          <div style={{ textAlign: 'center', marginTop: '6px', borderTop: '1px dashed black', paddingTop: '4px' }}>
-            <strong style={{ fontSize: '10px' }}>Items: {order.items.length}</strong>
-            <div style={{ margin: '6px auto', display: 'flex', justifyContent: 'center' }}>
+          {/* Footer - Minimal */}
+          <div style={{ textAlign: 'center', marginTop: '3px', paddingTop: '2px', borderTop: '1px dashed #000' }}>
+            <div style={{ margin: '4px auto', display: 'flex', justifyContent: 'center' }}>
               <QRCodeSVG 
                 value={qrData}
-                size={100}
+                size={80}
                 level="L"
                 includeMargin={false}
               />
             </div>
-            <span style={{ fontSize: '9px' }}>Scan to Auto Load Bill</span>
-            <br />
-            <span style={{ fontSize: '8px' }}>{format(new Date(), 'dd/MM/yy HH:mm')}</span>
+            <div style={{ fontSize: '8px' }}>
+              Scan for Bill | {order.items.length} items | {format(new Date(), 'dd/MM HH:mm')}
+            </div>
+            <div style={{ fontSize: '8px', marginTop: '2px' }}>Thank You!</div>
           </div>
         </div>
       </div>
 
-      {/* Print styles */}
+      {/* Print styles - Dynamic Height */}
       <style>{`
         @media print {
-          @page { size: 80mm auto; margin: 2mm; }
+          @page { 
+            size: 80mm auto; 
+            margin: 1mm; 
+          }
           body * { visibility: hidden; }
           .print-only, .print-only * { visibility: visible !important; display: block !important; }
           .print-only { position: absolute; left: 0; top: 0; }
