@@ -1,0 +1,89 @@
+{
+  "summary": "Tested price display in catalogue and compact receipt format features. All backend APIs and frontend UI working correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "✅ Backend: Public catalogue returns selling_price, mrp, unit fields",
+    "✅ Backend: Public catalogue hides stock/location fields (quantity_available, full_location_code, zone, etc.)",
+    "✅ Backend: WIRE001 has correct pricing (selling_price=85, mrp=100, unit=meter)",
+    "✅ Backend: MCB001 has correct pricing (selling_price=450, mrp=550, unit=piece)",
+    "✅ Backend: DRILL01 has correct pricing (selling_price=2499, mrp=2999, unit=piece)",
+    "✅ Backend: Products with selling_price=0 exist (SWITCH01, LED001 etc)",
+    "✅ Backend: Authenticated products API returns all price + location fields",
+    "✅ Backend: Create product with pricing fields works",
+    "✅ Backend: Update product pricing fields works",
+    "✅ Backend: Orders API returns all picklist fields for compact format",
+    "✅ Frontend: Catalogue shows ₹85/meter for WIRE001",
+    "✅ Frontend: Catalogue shows MRP ₹100 strikethrough for WIRE001",
+    "✅ Frontend: Catalogue shows ₹450/piece for MCB001",
+    "✅ Frontend: Catalogue shows MRP ₹550 strikethrough for MCB001",
+    "✅ Frontend: Catalogue shows 'Price on request' for SWITCH01 (selling_price=0)",
+    "✅ Frontend: Mobile catalogue prices display correctly",
+    "✅ Frontend: Product form has Pricing Information section",
+    "✅ Frontend: Product form has Selling Price (₹), MRP (₹), Unit, GST % fields",
+    "✅ Frontend: Unit dropdown has options: Piece, Meter, Kg, Box, Set, Roll, Pack",
+    "✅ Frontend: GST dropdown has options: 0%, 5%, 12%, 18%, 28%",
+    "✅ Frontend: Picklist page displays correctly with Master Barcode",
+    "✅ Frontend: Print view uses @page size: 80mm auto (dynamic height)",
+    "✅ Frontend: Print view has compact one-line item format",
+    "✅ Frontend: Print view compresses location code (A-03-R07-S2-B05 -> A03R07S2B05)",
+    "✅ Frontend: Print view QR code is 80px (smaller than screen view 180px)"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_price_catalogue_features.py",
+    "/app/test_reports/pytest/pytest_results_price.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_price_catalogue_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all features verified working)"
+  },
+
+  "test_credentials": "admin@sellandiamman.com / admin123",
+
+  "seed_data_creation": "Created test order ORD-20260217-0002 with WIRE001 for picklist testing",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Two features tested and working: 1) Price display in catalogue - products WIRE001, MCB001, DRILL01 show prices with unit, MRP strikethrough when higher; SWITCH01, LED001 show 'Price on request' for zero price. 2) Compact receipt format - print view uses 80mm auto height, one-line items (Product | CompactLocation | xQty), 80px QR code, compressed location codes. Product form has Pricing Information section with selling_price, mrp, unit (7 options), gst_percentage (5 options). All backend tests in test_price_catalogue_features.py.",
+
+  "features_tested": {
+    "show_price_in_catalogue": {
+      "status": "PASS",
+      "details": "Public catalogue API returns selling_price, mrp, unit but NOT stock/location. Frontend shows ₹ symbol with unit, MRP strikethrough, 'Price on request' for zero price"
+    },
+    "compact_receipt_format": {
+      "status": "PASS",
+      "details": "Print view uses @page size: 80mm auto (dynamic height), one-line item format, compressed location codes, 80px QR code"
+    },
+    "product_form_pricing": {
+      "status": "PASS",
+      "details": "Product form has Pricing Information section with selling_price, mrp, unit dropdown (7 options), gst_percentage dropdown (5 options)"
+    },
+    "mobile_responsiveness": {
+      "status": "PASS",
+      "details": "Catalogue prices display correctly on mobile viewport"
+    }
+  }
+}
