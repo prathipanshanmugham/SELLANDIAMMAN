@@ -284,6 +284,8 @@ const PicklistPage = () => {
         <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.2' }}>
           <div style={{ textAlign: 'center', marginBottom: '4px' }}>
             <strong style={{ fontSize: '12px' }}>SELLANDIAMMAN TRADERS</strong>
+            <br />
+            <span style={{ fontSize: '9px' }}>Electrical & Hardware</span>
           </div>
           
           <div style={{ borderTop: '1px dashed black', padding: '2px 0', marginBottom: '4px', fontSize: '10px' }}>
@@ -303,8 +305,19 @@ const PicklistPage = () => {
             </div>
           ))}
 
-          <div style={{ textAlign: 'center', marginTop: '4px', borderTop: '1px dashed black', paddingTop: '2px', fontSize: '10px' }}>
-            <strong>Items: {order.items.length}</strong> | {format(new Date(), 'dd/MM HH:mm')}
+          <div style={{ textAlign: 'center', marginTop: '6px', borderTop: '1px dashed black', paddingTop: '4px' }}>
+            <strong style={{ fontSize: '10px' }}>Items: {order.items.length}</strong>
+            <div style={{ margin: '6px auto', display: 'flex', justifyContent: 'center' }}>
+              <QRCodeSVG 
+                value={qrData}
+                size={100}
+                level="L"
+                includeMargin={false}
+              />
+            </div>
+            <span style={{ fontSize: '9px' }}>Scan to Auto Load Bill</span>
+            <br />
+            <span style={{ fontSize: '8px' }}>{format(new Date(), 'dd/MM/yy HH:mm')}</span>
           </div>
         </div>
       </div>
