@@ -344,6 +344,86 @@ const ProductFormPage = () => {
           </div>
         </div>
 
+        {/* Pricing */}
+        <div className="card-industrial">
+          <div className="border-b border-slate-100 p-4 bg-slate-50/50 flex items-center gap-2">
+            <IndianRupee className="w-5 h-5 text-green-600" />
+            <h2 className="font-heading font-bold text-slate-900">Pricing Information</h2>
+          </div>
+          <div className="p-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                Selling Price (₹) *
+              </Label>
+              <Input
+                data-testid="product-selling-price-input"
+                type="number"
+                step="0.01"
+                value={form.selling_price}
+                onChange={(e) => handleChange('selling_price', parseFloat(e.target.value) || 0)}
+                min={0}
+                className="mt-2 input-industrial font-mono"
+                placeholder="125.00"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                MRP (₹)
+              </Label>
+              <Input
+                data-testid="product-mrp-input"
+                type="number"
+                step="0.01"
+                value={form.mrp}
+                onChange={(e) => handleChange('mrp', parseFloat(e.target.value) || 0)}
+                min={0}
+                className="mt-2 input-industrial font-mono"
+                placeholder="150.00"
+              />
+              <p className="text-xs text-slate-500 mt-1">Optional (shows as strikethrough)</p>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                Unit
+              </Label>
+              <select
+                data-testid="product-unit-select"
+                value={form.unit}
+                onChange={(e) => handleChange('unit', e.target.value)}
+                className="mt-2 w-full h-12 px-3 border border-slate-200 rounded-sm bg-white text-sm focus:outline-none focus:ring-2 focus:ring-industrial-blue"
+              >
+                <option value="piece">Piece</option>
+                <option value="meter">Meter</option>
+                <option value="kg">Kg</option>
+                <option value="box">Box</option>
+                <option value="set">Set</option>
+                <option value="roll">Roll</option>
+                <option value="pack">Pack</option>
+              </select>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                GST %
+              </Label>
+              <select
+                data-testid="product-gst-select"
+                value={form.gst_percentage}
+                onChange={(e) => handleChange('gst_percentage', parseFloat(e.target.value))}
+                className="mt-2 w-full h-12 px-3 border border-slate-200 rounded-sm bg-white text-sm focus:outline-none focus:ring-2 focus:ring-industrial-blue"
+              >
+                <option value={0}>0%</option>
+                <option value={5}>5%</option>
+                <option value={12}>12%</option>
+                <option value={18}>18%</option>
+                <option value={28}>28%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="flex gap-4 justify-end">
           <Button
