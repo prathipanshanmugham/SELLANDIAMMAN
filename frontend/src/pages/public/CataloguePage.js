@@ -150,16 +150,38 @@ const CataloguePage = () => {
                       {product.product_name}
                     </h3>
                     {product.brand && (
-                      <p className="text-sm text-slate-500 mb-3">{product.brand}</p>
+                      <p className="text-sm text-slate-500 mb-2">{product.brand}</p>
                     )}
+                    
+                    {/* Price Display */}
+                    <div className="mb-3">
+                      {product.selling_price > 0 ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-heading text-xl font-bold text-green-600">
+                            ₹{product.selling_price.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            /{product.unit || 'piece'}
+                          </span>
+                          {product.mrp > product.selling_price && (
+                            <span className="text-sm text-slate-400 line-through">
+                              ₹{product.mrp.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-500 italic">Price on request</span>
+                      )}
+                    </div>
+                    
                     <div className="pt-3 border-t border-slate-100">
                       <Link to="/contact">
                         <Button 
-                          data-testid={`contact-availability-${product.sku}`}
-                          className="w-full btn-secondary text-sm"
+                          data-testid={`enquire-${product.sku}`}
+                          className="w-full btn-action text-sm"
                         >
                           <Phone className="w-4 h-4 mr-2" />
-                          Contact for Availability
+                          Enquire Now
                         </Button>
                       </Link>
                     </div>
