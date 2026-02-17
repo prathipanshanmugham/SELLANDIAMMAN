@@ -155,6 +155,43 @@ const CreateOrder = () => {
         <p className="text-slate-500 text-xs sm:text-sm mt-1">Add items to create a new sales order</p>
       </div>
 
+      {/* Order ID */}
+      <div className="card-industrial p-3 sm:p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Hash className="w-4 h-4 text-industrial-blue" />
+          <Label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wider">
+            Order ID
+          </Label>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            data-testid="order-id-input"
+            value={orderId}
+            onChange={(e) => setOrderId(e.target.value.toUpperCase())}
+            placeholder="ORD-0001"
+            className="flex-1 h-11 sm:h-12 text-base font-mono"
+          />
+          <Button
+            data-testid="generate-order-id-btn"
+            type="button"
+            onClick={generateNextOrderId}
+            disabled={generatingId}
+            variant="outline"
+            className="h-11 sm:h-12 px-3 sm:px-4"
+          >
+            {generatingId ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Generate Next</span>
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-slate-400 mt-1">Auto-generated or enter custom ID (must be unique)</p>
+      </div>
+
       {/* Customer Name */}
       <div className="card-industrial p-3 sm:p-4">
         <Label className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wider">
