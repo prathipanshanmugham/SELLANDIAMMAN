@@ -294,7 +294,67 @@ async def create_employee(employee: EmployeeCreate, user: dict = Depends(require
 @employees_router.get("", response_model=List[EmployeeResponse])
 async def get_employees(user: dict = Depends(require_admin)):
     employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
-    return [EmployeeResponse(**emp) for emp in employees]
+    result = []
+    for emp in employees:
+        # Get the name of who updated presence
+        presence_updated_by_name = None
+        if emp.get("presence_updated_by"):
+            updater = await db.employees.find_one({"id": emp["presence_updated_by"]}, {"_id": 0, "name": 1})
+            if updater:
+                presence_updated_by_name = updater.get("name")
+        
+        result.append(EmployeeResponse(
+            id=emp["id"],
+            name=emp["name"],
+            email=emp["email"],
+            role=emp["role"],
+            status=emp["status"],
+            presence_status=emp.get("presence_status", "present"),
+            presence_updated_at=emp.get("presence_updated_at"),
+            presence_updated_by=emp.get("presence_updated_by"),
+            presence_updated_by_name=presence_updated_by_name,
+            created_at=emp["created_at"]
+        ))
+    return result
+
+@employees_router.get("/presence-log")
+async def get_presence_log(limit: int = 50, user: dict = Depends(require_admin)):
+    """Get presence status change history"""
+    logs = await db.presence_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit).to_list(limit)
+    return logs
+
+@employees_router.patch("/{employee_id}/presence")
+async def update_presence_status(employee_id: str, update: PresenceStatusUpdate, user: dict = Depends(require_admin)):
+    """Update staff presence status (admin only)"""
+    employee = await db.employees.find_one({"id": employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    previous_status = employee.get("presence_status", "present")
+    new_status = update.presence_status
+    
+    # Update employee presence
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "presence_status": new_status,
+            "presence_updated_at": datetime.now(timezone.utc).isoformat(),
+            "presence_updated_by": user["user_id"]
+        }}
+    )
+    
+    # Log the change
+    log_entry = PresenceLogEntry(
+        employee_id=employee_id,
+        employee_name=employee["name"],
+        previous_status=previous_status,
+        new_status=new_status,
+        changed_by=user["user_id"],
+        changed_by_name=user["name"]
+    )
+    await db.presence_logs.insert_one(log_entry.model_dump())
+    
+    return {"message": f"Presence status updated to {new_status}"}
 
 @employees_router.delete("/{employee_id}")
 async def delete_employee(employee_id: str, user: dict = Depends(require_admin)):
