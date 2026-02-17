@@ -9,133 +9,162 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 - **Database**: MongoDB (collections: products, employees, orders, stock_transactions, presence_logs)
 - **Authentication**: JWT-based (Admin/Staff roles)
 
-## User Personas
-1. **Admin**: Full access - products, locations, staff, reports, orders, staff presence management
-2. **Staff**: Limited - search, create orders, picklists, mark picked (cannot change presence)
-
-## Core Requirements
-- [x] Public website (Home, Catalogue, Contact) - NO stock visibility
-- [x] JWT Authentication with Admin/Staff roles
-- [x] Product management with auto-generated location codes
-- [x] Order/Picklist workflow with "Mark as Picked"
-- [x] Auto stock deduction
-- [x] Admin dashboard with charts (Recharts)
-- [x] Low stock alerts
-- [x] Print-friendly picklist view (thermal receipt optimized)
-- [x] Full mobile responsiveness
-- [x] Master QR Barcode on receipts for billing software integration
-- [x] Staff Live Presence System (Admin-controlled)
-- [x] **Compact Receipt Format** - Dynamic height, one-line items
-- [x] **Price Display in Catalogue** - Shows price publicly (still hides stock/location)
-
 ## What's Been Implemented
 
-### Feb 17, 2026 - Compact Receipt & Price Display
+### Feb 17, 2026 - Latest Features
 
-**1. Compact Receipt Format**
-- Dynamic height: `@page { size: 80mm auto; }`
-- One-line item format: `Product | CompactLocation | xQty`
-- Compressed location codes: A-03-R07-S2-B05 → A03R07S2B05
-- Smaller QR code in print (80px vs 180px on screen)
-- Minimal footer with item count and timestamp
-- 30-50% paper reduction
+**1. Order ID Input + Auto Sequence**
+- Format: ORD-0001, ORD-0002, ORD-0003... (simple 4-digit sequence)
+- Auto-generates on page load
+- "Generate Next" button fetches next sequential ID
+- Manual entry allowed (must be unique, auto-uppercase)
+- API: `GET /api/orders/next-order-id`
 
-**2. Price Display in Public Catalogue**
-- Products now have: selling_price, mrp, unit, gst_percentage
-- Catalogue shows: ₹85/meter (with ₹100 strikethrough if MRP higher)
-- "Price on request" for products with price = 0
-- Stock quantity and location still hidden from public
-- Product form has Pricing Information section
-
-**3. QR Barcode & Staff Presence**
-- Master QR Barcode on receipts
-- Staff Live Monitor panel on dashboard
-- Admin-only presence control (5 states)
-
-### Feb 16, 2026 - Mobile Responsiveness
-- Mobile hamburger menu for public pages
-- Card-based views for all admin/staff tables
-- Responsive dashboard stats
-
-## Product Data Model
-```javascript
-{
-  id: string,
-  sku: string,
-  product_name: string,
-  category: string,
-  brand: string,
-  zone: string,
-  aisle: int,
-  rack: int,
-  shelf: int,
-  bin: int,
-  full_location_code: string,
-  quantity_available: int,
-  reorder_level: int,
-  supplier: string,
-  image_url: string,
-  // Price fields
-  selling_price: float,  // Display price
-  mrp: float,            // Max retail price (shows strikethrough)
-  unit: string,          // piece, meter, kg, box, set, roll, pack
-  gst_percentage: float, // 0, 5, 12, 18, 28
-  last_updated: datetime
-}
+**2. POS Thermal Printing Fix (No Blank Paper)**
+```css
+@page { size: 80mm auto !important; margin: 0 !important; }
+.receipt { height: auto !important; page-break-inside: avoid !important; }
 ```
+- Dynamic height based on content
+- No forced page breaks
+- No extra margins/padding
+- Compact one-line item format
 
-## Receipt Format (Print)
+**3. Master QR Code Plain Text Format**
+- Changed from JSON to plain text SKUs
+- Format: `#ORD-0001\nSKU1\nSKU1\nSKU2` (SKU repeated for qty)
+- Works with barcode scanners as keyboard input
+- Each scan sends: SKU1 [ENTER] SKU2 [ENTER]...
+- Compatible with: Odoo, Zoho, Tally, any POS
+
+**4. Price Display in Catalogue**
+- Products have: selling_price, mrp, unit, gst_percentage
+- Shows ₹85/meter with ₹100 strikethrough
+- Stock/location hidden from public
+
+**5. Staff Live Presence System**
+- Admin-only status control: Present, Permission, On Field, Absent, On Leave
+- Live Monitor panel on Dashboard
+- Status change history logging
+
+### Earlier Features
+- JWT Authentication (Admin/Staff roles)
+- Full product CRUD with location codes
+- Order/Picklist workflow with "Mark as Picked"
+- Auto stock deduction
+- Mobile responsiveness
+- SEO optimization
+- WhatsApp button
+
+## QR Code Format
+
+**New Plain Text Format (Scanner Compatible):**
+```
+#ORD-0001
+WIRE001
+WIRE001
+WIRE001
+MCB001
+```
+- First line: Order ID prefix
+- Each SKU on new line
+- SKU repeated for quantity (WIRE001 x3 = 3 lines)
+- Scanner sends each as keyboard input + Enter
+
+**Why This Format:**
+- Scanners act as keyboard emulation
+- Each newline = Enter key
+- Billing software receives: SKU1 [ENTER] SKU2 [ENTER]
+- Auto-adds items one by one
+- Works with any POS system
+
+## Print Receipt Format (Thermal 80mm)
+
 ```
 SELLANDIAMMAN TRADERS
-─────────────────────────
-ORD-20260217-0001 | 17/02 10:30 | Customer Name
-─────────────────────────
+─────────────────────
+ORD-0001 | 17/02 10:30 | Customer
+─────────────────────
 1. 2.5sqmm Copper Wire | A03R07S2B05 | x10
 2. 32A MCB Single Pole | B02R05S3B08 | x5
-─────────────────────────
-        [QR CODE]
-Scan for Bill | 2 items | 17/02 10:30
-           Thank You!
+─────────────────────
+      [QR CODE]
+Scan for Bill | 15 items
+    Thank You!
 ```
+
+- One-line item format
+- Compressed location codes
+- Dynamic height (no blank paper)
+- 70px QR code in print
 
 ## API Endpoints
 
-### Public (No Auth)
-- `GET /api/public/catalogue` - Returns: sku, product_name, category, brand, image_url, selling_price, mrp, unit
-- `GET /api/public/categories` - Category list
+### Orders
+- `GET /api/orders/next-order-id` - Get next sequential ORD-XXXX
+- `POST /api/orders` - Create order (accepts optional `order_id`)
+- `GET /api/orders` - List orders
+- `GET /api/orders/{id}` - Get order with picklist
+- `PATCH /api/orders/{id}/items/{item_id}/pick` - Mark picked
 
-### Products (Auth Required)
-- Full CRUD with all fields including price
+### Products
+- Full CRUD with price fields
+- Public catalogue (no stock/location)
 
 ### Dashboard
 - `GET /api/dashboard/staff-presence` - Staff presence data
 
-### Employees
-- `PATCH /api/employees/{id}/presence` - Update presence (admin only)
-- `GET /api/employees/presence-log` - Status change history
+## Data Models
+
+### Order
+```javascript
+{
+  id: string,
+  order_number: "ORD-0001",  // Sequential format
+  customer_name: string,
+  created_by: string,
+  created_by_name: string,
+  status: "pending" | "completed",
+  created_at: datetime,
+  items: [OrderItem]
+}
+```
+
+### Product
+```javascript
+{
+  // ... other fields
+  selling_price: float,
+  mrp: float,
+  unit: "piece" | "meter" | "kg" | "box" | "set" | "roll" | "pack",
+  gst_percentage: 0 | 5 | 12 | 18 | 28
+}
+```
 
 ## Key Files
-- `frontend/src/pages/public/CataloguePage.js` - Price display UI
-- `frontend/src/pages/admin/ProductFormPage.js` - Pricing form section
-- `frontend/src/pages/staff/PicklistPage.js` - Compact print format
-- `frontend/src/pages/admin/AdminDashboard.js` - Staff Live Monitor
-- `backend/server.py` - All API endpoints with price models
+- `frontend/src/pages/staff/CreateOrder.js` - Order ID input + Generate
+- `frontend/src/pages/staff/PicklistPage.js` - QR + Print CSS
+- `frontend/src/pages/public/CataloguePage.js` - Price display
+- `frontend/src/pages/admin/AdminDashboard.js` - Staff Monitor
+- `backend/server.py` - All API endpoints
 
 ## Prioritized Backlog
 
-### P0 (Critical) - Completed
-- [x] All core features
-- [x] Mobile responsiveness
-- [x] QR Barcode & Presence System
-- [x] Compact Receipt Format
-- [x] Price in Catalogue
+### Completed ✅
+- All core features
+- Mobile responsiveness
+- Order ID sequence
+- POS thermal print fix
+- QR code plain text format
+- Price in catalogue
+- Staff presence system
 
-### P1 (Important) - Pending
+### P1 (Pending)
 - [ ] PDF download for picklists
-- [ ] Barcode scanner integration
+- [ ] Barcode scanner hardware integration
 - [ ] GST invoice generation
 
-### P2 (Nice to Have)
+### P2 (Future)
 - [ ] Bulk product import
 - [ ] Multi-branch support
 - [ ] Supplier purchase orders
@@ -143,10 +172,9 @@ Scan for Bill | 2 items | 17/02 10:30
 ## Test Credentials
 - **Admin**: admin@sellandiamman.com / admin123
 
-## Sample Products with Prices
-| SKU | Product | Price | MRP | Unit |
-|-----|---------|-------|-----|------|
-| WIRE001 | 2.5 Sqmm Copper Wire | ₹85 | ₹100 | meter |
-| MCB001 | 32A MCB Single Pole | ₹450 | ₹550 | piece |
-| DRILL01 | Cordless Drill 18V | ₹2,499 | ₹2,999 | piece |
-| SWITCH01 | 6A Switch Socket | Price on request | - | piece |
+## Printer Settings for Thermal POS
+- Paper Type: Roll Paper (NOT A4)
+- Disable: "Print blank page"
+- Disable: "Form feed"
+- Disable: "Add margin"
+- Page size: 80mm Roll
