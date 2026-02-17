@@ -714,6 +714,29 @@ async def get_low_stock_items(user: dict = Depends(get_current_user)):
     result = await db.products.aggregate(pipeline).to_list(20)
     return result
 
+@dashboard_router.get("/staff-presence")
+async def get_staff_presence(user: dict = Depends(get_current_user)):
+    """Get all staff presence status for dashboard"""
+    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    result = []
+    for emp in employees:
+        # Get the name of who updated presence
+        presence_updated_by_name = None
+        if emp.get("presence_updated_by"):
+            updater = await db.employees.find_one({"id": emp["presence_updated_by"]}, {"_id": 0, "name": 1})
+            if updater:
+                presence_updated_by_name = updater.get("name")
+        
+        result.append({
+            "id": emp["id"],
+            "name": emp["name"],
+            "role": emp["role"],
+            "presence_status": emp.get("presence_status", "present"),
+            "presence_updated_at": emp.get("presence_updated_at"),
+            "presence_updated_by_name": presence_updated_by_name
+        })
+    return result
+
 # ==================== PUBLIC ROUTES (NO AUTH) ====================
 
 @public_router.get("/catalogue", response_model=List[PublicProduct])
