@@ -39,6 +39,8 @@ const AdminDashboard = () => {
   const [zoneData, setZoneData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [staffPresence, setStaffPresence] = useState([]);
+  const [updatingStaff, setUpdatingStaff] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,21 +49,73 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, zoneRes, categoryRes, lowStockRes] = await Promise.all([
+      const [statsRes, zoneRes, categoryRes, lowStockRes, presenceRes] = await Promise.all([
         axios.get(`${API_URL}/api/dashboard/stats`),
         axios.get(`${API_URL}/api/dashboard/zone-distribution`),
         axios.get(`${API_URL}/api/dashboard/category-distribution`),
-        axios.get(`${API_URL}/api/dashboard/low-stock-items`)
+        axios.get(`${API_URL}/api/dashboard/low-stock-items`),
+        axios.get(`${API_URL}/api/dashboard/staff-presence`)
       ]);
       
       setStats(statsRes.data);
       setZoneData(zoneRes.data);
       setCategoryData(categoryRes.data);
       setLowStockItems(lowStockRes.data);
+      setStaffPresence(presenceRes.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePresenceUpdate = async (employeeId, newStatus) => {
+    setUpdatingStaff(employeeId);
+    try {
+      await axios.patch(`${API_URL}/api/employees/${employeeId}/presence`, {
+        presence_status: newStatus
+      });
+      toast.success('Status updated');
+      // Refresh presence data
+      const presenceRes = await axios.get(`${API_URL}/api/dashboard/staff-presence`);
+      setStaffPresence(presenceRes.data);
+    } catch (error) {
+      toast.error('Failed to update status');
+    } finally {
+      setUpdatingStaff(null);
+    }
+  };
+
+  const getPresenceIcon = (status) => {
+    switch (status) {
+      case 'present': return <UserCheck className="w-4 h-4" />;
+      case 'permission': return <Coffee className="w-4 h-4" />;
+      case 'on_field': return <Truck className="w-4 h-4" />;
+      case 'absent': return <UserX className="w-4 h-4" />;
+      case 'on_leave': return <CalendarOff className="w-4 h-4" />;
+      default: return <UserCheck className="w-4 h-4" />;
+    }
+  };
+
+  const getPresenceColor = (status) => {
+    switch (status) {
+      case 'present': return 'bg-green-100 text-green-700 border-green-200';
+      case 'permission': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'on_field': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'absent': return 'bg-red-100 text-red-700 border-red-200';
+      case 'on_leave': return 'bg-slate-100 text-slate-600 border-slate-200';
+      default: return 'bg-green-100 text-green-700 border-green-200';
+    }
+  };
+
+  const getPresenceLabel = (status) => {
+    switch (status) {
+      case 'present': return 'Present';
+      case 'permission': return 'Permission';
+      case 'on_field': return 'On Field';
+      case 'absent': return 'Absent';
+      case 'on_leave': return 'On Leave';
+      default: return 'Present';
     }
   };
 
