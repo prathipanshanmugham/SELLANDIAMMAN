@@ -523,14 +523,41 @@ async def adjust_stock(
 
 # ==================== ORDER ROUTES ====================
 
-async def generate_order_number():
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
-    count = await db.orders.count_documents({"order_number": {"$regex": f"^ORD-{today}"}})
-    return f"ORD-{today}-{str(count + 1).zfill(4)}"
+async def generate_next_order_number():
+    """Generate next sequential order number: ORD-0001, ORD-0002, etc."""
+    # Find the highest order number
+    pipeline = [
+        {"$match": {"order_number": {"$regex": "^ORD-\\d{4}$"}}},
+        {"$project": {"num": {"$toInt": {"$substr": ["$order_number", 4, 4]}}}},
+        {"$sort": {"num": -1}},
+        {"$limit": 1}
+    ]
+    result = await db.orders.aggregate(pipeline).to_list(1)
+    
+    if result:
+        next_num = result[0]["num"] + 1
+    else:
+        next_num = 1
+    
+    return f"ORD-{str(next_num).zfill(4)}"
+
+@orders_router.get("/next-order-id")
+async def get_next_order_id(user: dict = Depends(get_current_user)):
+    """Get the next auto-generated order ID"""
+    next_id = await generate_next_order_number()
+    return {"next_order_id": next_id}
 
 @orders_router.post("", response_model=OrderResponse)
 async def create_order(order: OrderCreate, user: dict = Depends(get_current_user)):
-    order_number = await generate_order_number()
+    # Use custom order_id if provided, otherwise auto-generate
+    if order.order_id and order.order_id.strip():
+        # Check if custom order ID already exists
+        existing = await db.orders.find_one({"order_number": order.order_id})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Order ID {order.order_id} already exists")
+        order_number = order.order_id.strip().upper()
+    else:
+        order_number = await generate_next_order_number()
     
     order_items = []
     for item in order.items:
