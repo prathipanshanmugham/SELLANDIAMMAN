@@ -275,9 +275,11 @@ const PicklistPage = () => {
               />
             </div>
             <p className="text-xs text-slate-500 mt-3 max-w-xs">
-              Scan to Auto Load Bill - Contains all {order.items.length} items for billing software
+              Scan to Auto-Add Items to Billing - Each SKU scans as keyboard input
             </p>
-            <p className="font-mono text-xs text-slate-400 mt-1">{order.order_number}</p>
+            <p className="font-mono text-[10px] text-slate-400 mt-1 bg-slate-50 px-2 py-1 rounded">
+              {order.items.reduce((sum, i) => sum + i.quantity_required, 0)} SKU entries
+            </p>
           </div>
         </div>
       </div>
