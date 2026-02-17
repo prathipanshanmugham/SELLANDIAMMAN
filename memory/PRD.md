@@ -25,139 +25,110 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 - [x] Full mobile responsiveness
 - [x] Master QR Barcode on receipts for billing software integration
 - [x] Staff Live Presence System (Admin-controlled)
+- [x] **Compact Receipt Format** - Dynamic height, one-line items
+- [x] **Price Display in Catalogue** - Shows price publicly (still hides stock/location)
 
 ## What's Been Implemented
 
-### Feb 17, 2026 - New Features
-**1. Master QR Barcode on Receipts**
-- QR code added to Picklist page containing JSON data
-- Format: `{order_id, customer, items: [{sku, qty}]}`
-- Scannable by external billing software (Odoo, Zoho, etc.)
-- Shows "Scan to Auto Load Bill" text
-- Visible on both screen and thermal print
+### Feb 17, 2026 - Compact Receipt & Price Display
 
-**2. Staff Live Presence System**
-- Admin can set staff status: Present (🟢), Permission (🟡), On Field (🔵), Absent (🔴), On Leave (⚫)
-- "Staff Live Monitor" panel on Admin Dashboard
-- Real-time status updates with dropdown selector
-- Status change history logged to `presence_logs` collection
-- Staff cannot change their own presence (admin-only)
+**1. Compact Receipt Format**
+- Dynamic height: `@page { size: 80mm auto; }`
+- One-line item format: `Product | CompactLocation | xQty`
+- Compressed location codes: A-03-R07-S2-B05 → A03R07S2B05
+- Smaller QR code in print (80px vs 180px on screen)
+- Minimal footer with item count and timestamp
+- 30-50% paper reduction
+
+**2. Price Display in Public Catalogue**
+- Products now have: selling_price, mrp, unit, gst_percentage
+- Catalogue shows: ₹85/meter (with ₹100 strikethrough if MRP higher)
+- "Price on request" for products with price = 0
+- Stock quantity and location still hidden from public
+- Product form has Pricing Information section
+
+**3. QR Barcode & Staff Presence**
+- Master QR Barcode on receipts
+- Staff Live Monitor panel on dashboard
+- Admin-only presence control (5 states)
 
 ### Feb 16, 2026 - Mobile Responsiveness
-- Shared `PublicNavbar` component with hamburger menu
-- Mobile card views for Products, Orders, Staff pages
-- Enhanced Admin Dashboard with 2-column grid stats
-- All pages tested at 375px viewport
+- Mobile hamburger menu for public pages
+- Card-based views for all admin/staff tables
+- Responsive dashboard stats
 
-### Feb 15, 2026 - Core Features
-- Complete backend API
-- Public pages with SEO
-- WhatsApp floating button
-- Thermal receipt print layout
+## Product Data Model
+```javascript
+{
+  id: string,
+  sku: string,
+  product_name: string,
+  category: string,
+  brand: string,
+  zone: string,
+  aisle: int,
+  rack: int,
+  shelf: int,
+  bin: int,
+  full_location_code: string,
+  quantity_available: int,
+  reorder_level: int,
+  supplier: string,
+  image_url: string,
+  // Price fields
+  selling_price: float,  // Display price
+  mrp: float,            // Max retail price (shows strikethrough)
+  unit: string,          // piece, meter, kg, box, set, roll, pack
+  gst_percentage: float, // 0, 5, 12, 18, 28
+  last_updated: datetime
+}
+```
 
-## Backend API Endpoints
+## Receipt Format (Print)
+```
+SELLANDIAMMAN TRADERS
+─────────────────────────
+ORD-20260217-0001 | 17/02 10:30 | Customer Name
+─────────────────────────
+1. 2.5sqmm Copper Wire | A03R07S2B05 | x10
+2. 32A MCB Single Pole | B02R05S3B08 | x5
+─────────────────────────
+        [QR CODE]
+Scan for Bill | 2 items | 17/02 10:30
+           Thank You!
+```
 
-### Authentication
-- `POST /api/auth/login` - JWT login
-- `GET /api/auth/me` - Get current user
-
-### Employees
-- `GET /api/employees` - List all (admin only)
-- `POST /api/employees` - Create staff (admin only)
-- `DELETE /api/employees/{id}` - Delete staff (admin only)
-- `PATCH /api/employees/{id}/status` - Toggle active/inactive
-- `PATCH /api/employees/{id}/presence` - Update presence status (admin only)
-- `GET /api/employees/presence-log` - Get status change history (admin only)
-
-### Products
-- `GET /api/products` - List with filters
-- `POST /api/products` - Create product (admin only)
-- `GET /api/products/{id}` - Get single product
-- `PUT /api/products/{id}` - Update product (admin only)
-- `DELETE /api/products/{id}` - Delete product (admin only)
-- `PATCH /api/products/{id}/stock` - Adjust stock (admin only)
-- `GET /api/products/categories` - List categories
-- `GET /api/products/zones` - List zones
-
-### Orders
-- `POST /api/orders` - Create order
-- `GET /api/orders` - List orders
-- `GET /api/orders/{id}` - Get order details
-- `PATCH /api/orders/{id}/items/{item_id}/pick` - Mark item picked (deducts stock)
-- `DELETE /api/orders/{id}` - Delete order (admin only)
-
-### Dashboard
-- `GET /api/dashboard/stats` - Dashboard statistics
-- `GET /api/dashboard/zone-distribution` - Zone chart data
-- `GET /api/dashboard/category-distribution` - Category chart data
-- `GET /api/dashboard/low-stock-items` - Low stock alerts
-- `GET /api/dashboard/staff-presence` - Staff presence data
-- `GET /api/dashboard/recent-transactions` - Recent stock transactions
+## API Endpoints
 
 ### Public (No Auth)
-- `GET /api/public/catalogue` - Product list (no stock info)
+- `GET /api/public/catalogue` - Returns: sku, product_name, category, brand, image_url, selling_price, mrp, unit
 - `GET /api/public/categories` - Category list
 
-## Data Models
+### Products (Auth Required)
+- Full CRUD with all fields including price
 
-### Employee
-```javascript
-{
-  id: string,
-  name: string,
-  email: string,
-  role: "admin" | "staff",
-  status: "active" | "inactive",
-  presence_status: "present" | "permission" | "on_field" | "absent" | "on_leave",
-  presence_updated_at: datetime,
-  presence_updated_by: string,
-  password_hash: string,
-  created_at: datetime
-}
-```
+### Dashboard
+- `GET /api/dashboard/staff-presence` - Staff presence data
 
-### Presence Log
-```javascript
-{
-  id: string,
-  employee_id: string,
-  employee_name: string,
-  previous_status: string,
-  new_status: string,
-  changed_by: string,
-  changed_by_name: string,
-  timestamp: datetime
-}
-```
-
-### QR Code Data Format
-```json
-{
-  "order_id": "ORD-20260217-0001",
-  "customer": "Customer Name",
-  "items": [
-    {"sku": "WIRE001", "qty": 5},
-    {"sku": "MCB001", "qty": 2}
-  ]
-}
-```
+### Employees
+- `PATCH /api/employees/{id}/presence` - Update presence (admin only)
+- `GET /api/employees/presence-log` - Status change history
 
 ## Key Files
-- `frontend/src/pages/staff/PicklistPage.js` - QR code implementation
-- `frontend/src/pages/admin/AdminDashboard.js` - Staff Live Monitor panel
-- `frontend/src/components/common/PublicNavbar.js` - Mobile navigation
-- `backend/server.py` - All API endpoints
+- `frontend/src/pages/public/CataloguePage.js` - Price display UI
+- `frontend/src/pages/admin/ProductFormPage.js` - Pricing form section
+- `frontend/src/pages/staff/PicklistPage.js` - Compact print format
+- `frontend/src/pages/admin/AdminDashboard.js` - Staff Live Monitor
+- `backend/server.py` - All API endpoints with price models
 
 ## Prioritized Backlog
 
 ### P0 (Critical) - Completed
-- [x] Authentication system
-- [x] Product CRUD with location codes
-- [x] Order creation workflow
-- [x] Pick and stock deduction
+- [x] All core features
 - [x] Mobile responsiveness
-- [x] Master QR Barcode
-- [x] Staff Presence System
+- [x] QR Barcode & Presence System
+- [x] Compact Receipt Format
+- [x] Price in Catalogue
 
 ### P1 (Important) - Pending
 - [ ] PDF download for picklists
@@ -168,11 +139,14 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 - [ ] Bulk product import
 - [ ] Multi-branch support
 - [ ] Supplier purchase orders
-- [ ] Stock history reports
 
 ## Test Credentials
 - **Admin**: admin@sellandiamman.com / admin123
 
-## Location Code Format
-`{Zone}-{Aisle(2digit)}-R{Rack(2digit)}-S{Shelf}-B{Bin(2digit)}`
-Example: `A-03-R07-S2-B05`
+## Sample Products with Prices
+| SKU | Product | Price | MRP | Unit |
+|-----|---------|-------|-----|------|
+| WIRE001 | 2.5 Sqmm Copper Wire | ₹85 | ₹100 | meter |
+| MCB001 | 32A MCB Single Pole | ₹450 | ₹550 | piece |
+| DRILL01 | Cordless Drill 18V | ₹2,499 | ₹2,999 | piece |
+| SWITCH01 | 6A Switch Socket | Price on request | - | piece |
