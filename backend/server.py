@@ -53,6 +53,9 @@ class Employee(EmployeeBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     status: str = "active"
+    presence_status: str = "present"  # present, permission, on_field, absent, on_leave
+    presence_updated_at: Optional[str] = None
+    presence_updated_by: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class EmployeeResponse(BaseModel):
@@ -61,7 +64,24 @@ class EmployeeResponse(BaseModel):
     email: str
     role: str
     status: str
+    presence_status: Optional[str] = "present"
+    presence_updated_at: Optional[str] = None
+    presence_updated_by: Optional[str] = None
+    presence_updated_by_name: Optional[str] = None
     created_at: str
+
+class PresenceStatusUpdate(BaseModel):
+    presence_status: str = Field(..., pattern="^(present|permission|on_field|absent|on_leave)$")
+
+class PresenceLogEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    previous_status: str
+    new_status: str
+    changed_by: str
+    changed_by_name: str
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class LoginRequest(BaseModel):
     email: EmailStr
