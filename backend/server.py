@@ -136,6 +136,10 @@ class ProductResponse(BaseModel):
     reorder_level: int
     supplier: str
     image_url: str
+    selling_price: float = 0
+    mrp: float = 0
+    unit: str = "piece"
+    gst_percentage: float = 18
     last_updated: str
 
 class OrderItemBase(BaseModel):
