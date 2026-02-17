@@ -158,6 +158,7 @@ class OrderItemResponse(BaseModel):
 class OrderCreate(BaseModel):
     customer_name: str
     items: List[OrderItemBase]
+    order_id: Optional[str] = None  # Optional custom order ID
 
 class OrderResponse(BaseModel):
     id: str
