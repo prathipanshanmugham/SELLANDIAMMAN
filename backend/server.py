@@ -767,10 +767,11 @@ async def get_public_catalogue(
     if category:
         query["category"] = category
     
-    # Only return public fields - NO stock info
+    # Only return public fields - NO stock info, NO location
     products = await db.products.find(
         query,
-        {"_id": 0, "sku": 1, "product_name": 1, "category": 1, "brand": 1, "image_url": 1}
+        {"_id": 0, "sku": 1, "product_name": 1, "category": 1, "brand": 1, "image_url": 1, 
+         "selling_price": 1, "mrp": 1, "unit": 1}
     ).skip(skip).limit(min(limit, 100)).to_list(min(limit, 100))
     
     return [PublicProduct(**prod) for prod in products]
