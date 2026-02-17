@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { 
   Package, 
   ShoppingCart, 
@@ -9,7 +10,13 @@ import {
   TrendingUp,
   ArrowRight,
   Plus,
-  Clock
+  Clock,
+  Users,
+  UserCheck,
+  Coffee,
+  Truck,
+  UserX,
+  CalendarOff
 } from 'lucide-react';
 import {
   BarChart,
@@ -23,6 +30,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
