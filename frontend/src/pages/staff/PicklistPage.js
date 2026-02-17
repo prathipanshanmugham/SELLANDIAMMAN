@@ -75,6 +75,16 @@ const PicklistPage = () => {
   const allPicked = order.items.every(item => item.picking_status === 'picked');
   const basePath = isAdmin() ? '/admin' : '/staff';
 
+  // Generate QR code data for billing software integration
+  const qrData = JSON.stringify({
+    order_id: order.order_number,
+    customer: order.customer_name,
+    items: order.items.map(item => ({
+      sku: item.sku,
+      qty: item.quantity_required
+    }))
+  });
+
   return (
     <div className="animate-fade-in">
       {/* Screen View */}
