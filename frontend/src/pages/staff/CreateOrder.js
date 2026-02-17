@@ -127,7 +127,8 @@ const CreateOrder = () => {
     try {
       const response = await axios.post(`${API_URL}/api/orders`, {
         customer_name: customerName,
-        items: items.map(i => ({ sku: i.sku, quantity_required: i.quantity_required }))
+        items: items.map(i => ({ sku: i.sku, quantity_required: i.quantity_required })),
+        order_id: orderId.trim() || null  // Pass custom order ID
       });
       
       toast.success('Order created successfully!');
