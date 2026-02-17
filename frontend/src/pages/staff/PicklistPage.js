@@ -255,6 +255,28 @@ const PicklistPage = () => {
             <span className="text-slate-500"> / {order.items.length}</span>
           </div>
         </div>
+
+        {/* Master Barcode Section */}
+        <div className="mt-6 card-industrial p-4 sm:p-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex items-center gap-2 mb-4">
+              <QrCode className="w-5 h-5 text-industrial-blue" />
+              <h3 className="font-heading text-lg font-bold text-slate-900">Master Barcode</h3>
+            </div>
+            <div className="bg-white p-4 rounded-sm border-2 border-slate-200">
+              <QRCodeSVG 
+                value={qrData}
+                size={180}
+                level="M"
+                includeMargin={true}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-3 max-w-xs">
+              Scan to Auto Load Bill - Contains all {order.items.length} items for billing software
+            </p>
+            <p className="font-mono text-xs text-slate-400 mt-1">{order.order_number}</p>
+          </div>
+        </div>
       </div>
 
       {/* Print View - Thermal (80mm) - Compact for minimal paper */}
