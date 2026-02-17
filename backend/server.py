@@ -106,6 +106,10 @@ class ProductBase(BaseModel):
     reorder_level: int = Field(default=10, ge=0)
     supplier: Optional[str] = ""
     image_url: Optional[str] = ""
+    selling_price: float = Field(default=0, ge=0)
+    mrp: Optional[float] = Field(default=0, ge=0)
+    unit: Optional[str] = "piece"  # piece, meter, kg, box, etc.
+    gst_percentage: Optional[float] = Field(default=18, ge=0, le=100)
 
 class ProductCreate(ProductBase):
     pass
