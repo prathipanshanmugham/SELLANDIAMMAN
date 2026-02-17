@@ -192,6 +192,9 @@ class PublicProduct(BaseModel):
     category: str
     brand: str
     image_url: str
+    selling_price: float = 0
+    mrp: float = 0
+    unit: str = "piece"
 
 # ==================== HELPER FUNCTIONS ====================
 
