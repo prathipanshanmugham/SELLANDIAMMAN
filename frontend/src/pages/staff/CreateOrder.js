@@ -12,13 +12,16 @@ import {
   Search,
   Package,
   MapPin,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
+  Hash
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const CreateOrder = () => {
   const navigate = useNavigate();
+  const [orderId, setOrderId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [items, setItems] = useState([]);
   const [skuInput, setSkuInput] = useState('');
@@ -26,13 +29,31 @@ const CreateOrder = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingId, setGeneratingId] = useState(false);
   
   const skuInputRef = useRef(null);
   const qtyInputRef = useRef(null);
 
   useEffect(() => {
+    // Auto-generate order ID on page load
+    generateNextOrderId();
     skuInputRef.current?.focus();
   }, []);
+
+  const generateNextOrderId = async () => {
+    setGeneratingId(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/next-order-id`);
+      setOrderId(response.data.next_order_id);
+    } catch (error) {
+      console.error('Failed to generate order ID:', error);
+      // Fallback to timestamp-based ID
+      const ts = Date.now().toString().slice(-6);
+      setOrderId(`ORD-${ts}`);
+    } finally {
+      setGeneratingId(false);
+    }
+  };
 
   // Search products as user types
   useEffect(() => {
