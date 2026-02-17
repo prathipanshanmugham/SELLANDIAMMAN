@@ -11,9 +11,11 @@ import {
   MapPin,
   Package,
   Clock,
-  CheckCircle
+  CheckCircle,
+  QrCode
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
