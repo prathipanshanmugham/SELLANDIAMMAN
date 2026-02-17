@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Package, MapPin } from 'lucide-react';
+import { ArrowLeft, Save, Package, MapPin, IndianRupee } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,7 +30,11 @@ const ProductFormPage = () => {
     quantity_available: 0,
     reorder_level: 10,
     supplier: '',
-    image_url: ''
+    image_url: '',
+    selling_price: 0,
+    mrp: 0,
+    unit: 'piece',
+    gst_percentage: 18
   });
 
   useEffect(() => {
