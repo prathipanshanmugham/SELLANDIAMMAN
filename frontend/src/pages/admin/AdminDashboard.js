@@ -286,6 +286,176 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* Staff Live Presence */}
+      <div className="card-industrial">
+        <div className="border-b border-slate-100 p-3 sm:p-4 bg-slate-50/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-industrial-blue" />
+            <h3 className="font-heading text-base sm:text-lg font-bold text-slate-900">
+              Staff Live Monitor
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              {staffPresence.filter(s => s.presence_status === 'present').length}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+              {staffPresence.filter(s => s.presence_status === 'permission').length}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              {staffPresence.filter(s => s.presence_status === 'absent').length}
+            </span>
+          </div>
+        </div>
+        
+        {staffPresence.length > 0 ? (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header text-left">Name</th>
+                    <th className="table-header text-left">Role</th>
+                    <th className="table-header text-center">Status</th>
+                    <th className="table-header text-left">Last Updated</th>
+                    <th className="table-header text-center">Change Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffPresence.map((staff) => (
+                    <tr key={staff.id} className="table-row" data-testid={`staff-presence-${staff.id}`}>
+                      <td className="table-cell">
+                        <div className="flex items-center gap-2">
+                          <div className={`
+                            w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm
+                            ${staff.role === 'admin' ? 'bg-industrial-orange' : 'bg-industrial-blue'}
+                          `}>
+                            {staff.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium">{staff.name}</span>
+                        </div>
+                      </td>
+                      <td className="table-cell capitalize text-slate-600">{staff.role}</td>
+                      <td className="table-cell text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded border ${getPresenceColor(staff.presence_status)}`}>
+                          {getPresenceIcon(staff.presence_status)}
+                          {getPresenceLabel(staff.presence_status)}
+                        </span>
+                      </td>
+                      <td className="table-cell text-sm text-slate-500">
+                        {staff.presence_updated_at ? (
+                          <div>
+                            <span>{new Date(staff.presence_updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            {staff.presence_updated_by_name && (
+                              <span className="text-xs text-slate-400 ml-1">by {staff.presence_updated_by_name}</span>
+                            )}
+                          </div>
+                        ) : '-'}
+                      </td>
+                      <td className="table-cell text-center">
+                        <Select
+                          value={staff.presence_status}
+                          onValueChange={(value) => handlePresenceUpdate(staff.id, value)}
+                          disabled={updatingStaff === staff.id}
+                        >
+                          <SelectTrigger className="w-32 h-8 text-xs" data-testid={`presence-select-${staff.id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="present">
+                              <span className="flex items-center gap-2">
+                                <UserCheck className="w-3 h-3 text-green-600" /> Present
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="permission">
+                              <span className="flex items-center gap-2">
+                                <Coffee className="w-3 h-3 text-yellow-600" /> Permission
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="on_field">
+                              <span className="flex items-center gap-2">
+                                <Truck className="w-3 h-3 text-blue-600" /> On Field
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="absent">
+                              <span className="flex items-center gap-2">
+                                <UserX className="w-3 h-3 text-red-600" /> Absent
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="on_leave">
+                              <span className="flex items-center gap-2">
+                                <CalendarOff className="w-3 h-3 text-slate-600" /> On Leave
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="sm:hidden divide-y divide-slate-100">
+              {staffPresence.map((staff) => (
+                <div key={staff.id} className="p-3" data-testid={`staff-presence-card-${staff.id}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0
+                      ${staff.role === 'admin' ? 'bg-industrial-orange' : 'bg-industrial-blue'}
+                    `}>
+                      {staff.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{staff.name}</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border ${getPresenceColor(staff.presence_status)}`}>
+                          {getPresenceIcon(staff.presence_status)}
+                          {getPresenceLabel(staff.presence_status)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 capitalize">{staff.role}</p>
+                      {staff.presence_updated_at && (
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Updated {new Date(staff.presence_updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                          {staff.presence_updated_by_name && ` by ${staff.presence_updated_by_name}`}
+                        </p>
+                      )}
+                    </div>
+                    <Select
+                      value={staff.presence_status}
+                      onValueChange={(value) => handlePresenceUpdate(staff.id, value)}
+                      disabled={updatingStaff === staff.id}
+                    >
+                      <SelectTrigger className="w-24 h-8 text-[10px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="present">Present</SelectItem>
+                        <SelectItem value="permission">Permission</SelectItem>
+                        <SelectItem value="on_field">On Field</SelectItem>
+                        <SelectItem value="absent">Absent</SelectItem>
+                        <SelectItem value="on_leave">On Leave</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="p-6 sm:p-8 text-center text-slate-400">
+            <Users className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-slate-300" />
+            <p className="font-medium text-slate-600">No staff members found</p>
+          </div>
+        )}
+      </div>
+
       {/* Low Stock Items */}
       <div className="card-industrial">
         <div className="border-b border-slate-100 p-3 sm:p-4 bg-slate-50/50 flex items-center justify-between">
