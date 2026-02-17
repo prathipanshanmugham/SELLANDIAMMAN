@@ -284,9 +284,9 @@ const PicklistPage = () => {
         </div>
       </div>
 
-      {/* Print View - Thermal (80mm) - Ultra Compact Format */}
-      <div className="print-only thermal-print hidden">
-        <div style={{ width: '72mm', fontFamily: 'monospace', fontSize: '10px', lineHeight: '1.1' }}>
+      {/* Print View - Thermal (80mm) - Ultra Compact Format - NO BLANK PAPER */}
+      <div className="print-only thermal-print hidden" id="print-receipt">
+        <div className="receipt">
           {/* Header - Compact */}
           <div style={{ textAlign: 'center', marginBottom: '2px' }}>
             <strong style={{ fontSize: '11px' }}>SELLANDIAMMAN TRADERS</strong>
@@ -300,9 +300,9 @@ const PicklistPage = () => {
           {/* Items - One Line Each: Product | Location | xQty */}
           {order.items.map((item, idx) => {
             // Compress location code: A-03-R07-S2-B05 -> A03R07S2B05
-            const compactLoc = item.full_location_code.replace(/-/g, '').replace(/R/g, 'R').replace(/S/g, 'S').replace(/B/g, 'B');
+            const compactLoc = item.full_location_code.replace(/-/g, '');
             // Truncate product name
-            const shortName = item.product_name.length > 20 ? item.product_name.substring(0, 20) + '..' : item.product_name;
+            const shortName = item.product_name.length > 18 ? item.product_name.substring(0, 18) + '..' : item.product_name;
             return (
               <div key={item.id} style={{ fontSize: '9px', padding: '1px 0', borderBottom: '1px dotted #ccc' }}>
                 {idx + 1}. {shortName} | <strong>{compactLoc}</strong> | <strong>x{item.quantity_required}</strong>
@@ -312,32 +312,71 @@ const PicklistPage = () => {
 
           {/* Footer - Minimal */}
           <div style={{ textAlign: 'center', marginTop: '3px', paddingTop: '2px', borderTop: '1px dashed #000' }}>
-            <div style={{ margin: '4px auto', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ margin: '3px auto', display: 'flex', justifyContent: 'center' }}>
               <QRCodeSVG 
                 value={qrData}
-                size={80}
+                size={70}
                 level="L"
                 includeMargin={false}
               />
             </div>
             <div style={{ fontSize: '8px' }}>
-              Scan for Bill | {order.items.length} items | {format(new Date(), 'dd/MM HH:mm')}
+              Scan for Bill | {order.items.reduce((sum, i) => sum + i.quantity_required, 0)} items
             </div>
-            <div style={{ fontSize: '8px', marginTop: '2px' }}>Thank You!</div>
+            <div style={{ fontSize: '8px', marginTop: '1px' }}>Thank You!</div>
           </div>
         </div>
       </div>
 
-      {/* Print styles - Dynamic Height */}
+      {/* Print styles - NO BLANK PAPER - Dynamic Height Only */}
       <style>{`
         @media print {
           @page { 
-            size: 80mm auto; 
-            margin: 1mm; 
+            size: 80mm auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          body * { visibility: hidden; }
-          .print-only, .print-only * { visibility: visible !important; display: block !important; }
-          .print-only { position: absolute; left: 0; top: 0; }
+          
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 80mm !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+          }
+          
+          body * {
+            visibility: hidden;
+          }
+          
+          .print-only,
+          .print-only * {
+            visibility: visible !important;
+          }
+          
+          .print-only {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          .receipt {
+            width: 72mm !important;
+            margin: 0 auto !important;
+            padding: 2mm !important;
+            font-family: monospace !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+            height: auto !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            page-break-before: avoid !important;
+          }
         }
       `}</style>
     </div>
