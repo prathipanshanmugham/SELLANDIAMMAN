@@ -24,6 +24,7 @@ import StaffDashboard from "./pages/staff/StaffDashboard";
 import SearchProducts from "./pages/staff/SearchProducts";
 import CreateOrder from "./pages/staff/CreateOrder";
 import PicklistPage from "./pages/staff/PicklistPage";
+import OrderModify from "./pages/staff/OrderModify";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
