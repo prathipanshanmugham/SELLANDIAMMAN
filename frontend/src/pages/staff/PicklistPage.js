@@ -97,14 +97,26 @@ const PicklistPage = () => {
               <p className="text-slate-500 text-sm font-mono">{order.order_number}</p>
             </div>
           </div>
-          <Button
-            data-testid="print-picklist-btn"
-            onClick={handlePrint}
-            className="btn-action"
-          >
-            <Printer className="w-5 h-5 mr-2" />
-            Print
-          </Button>
+          <div className="flex gap-2">
+            <Link to={`${basePath}/orders/${id}/modify`}>
+              <Button
+                data-testid="modify-order-btn"
+                variant="outline"
+                className="text-industrial-blue border-industrial-blue hover:bg-industrial-blue hover:text-white"
+              >
+                <Edit3 className="w-5 h-5 sm:mr-2" />
+                <span className="hidden sm:inline">Modify</span>
+              </Button>
+            </Link>
+            <Button
+              data-testid="print-picklist-btn"
+              onClick={handlePrint}
+              className="btn-action"
+            >
+              <Printer className="w-5 h-5 sm:mr-2" />
+              <span className="hidden sm:inline">Print</span>
+            </Button>
+          </div>
         </div>
 
         {/* Order Info */}
