@@ -734,6 +734,10 @@ async def get_order_modification_history(order_id: str, user: dict = Depends(get
 @orders_router.patch("/{order_id}/customer")
 async def update_order_customer(order_id: str, update: OrderUpdateCustomer, user: dict = Depends(get_current_user)):
     """Update customer name - staff can only edit pending orders"""
+    # Validate customer name
+    if not update.customer_name or not update.customer_name.strip():
+        raise HTTPException(status_code=400, detail="Customer name cannot be empty")
+    
     order = await db.orders.find_one({"id": order_id})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -743,20 +747,21 @@ async def update_order_customer(order_id: str, update: OrderUpdateCustomer, user
         raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
     
     old_value = order["customer_name"]
+    new_value = update.customer_name.strip()
     
     await db.orders.update_one(
         {"id": order_id},
-        {"$set": {"customer_name": update.customer_name}}
+        {"$set": {"customer_name": new_value}}
     )
     
     # Log modification
     await log_order_modification(
         order_id, order["order_number"], user,
         "customer_change", "customer_name",
-        old_value, update.customer_name, update.reason
+        old_value, new_value, update.reason
     )
     
-    return {"message": "Customer name updated", "old_value": old_value, "new_value": update.customer_name}
+    return {"message": "Customer name updated", "old_value": old_value, "new_value": new_value}
 
 @orders_router.patch("/{order_id}/status")
 async def update_order_status(order_id: str, update: OrderUpdateStatus, user: dict = Depends(require_admin)):
