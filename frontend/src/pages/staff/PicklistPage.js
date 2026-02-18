@@ -12,10 +12,10 @@ import {
   Package,
   Clock,
   CheckCircle,
-  QrCode
+  Barcode
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { QRCodeSVG } from 'qrcode.react';
+import BarcodeComponent from 'react-barcode';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
