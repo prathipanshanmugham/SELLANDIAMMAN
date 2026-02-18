@@ -949,11 +949,43 @@ async def update_item_quantity(order_id: str, item_id: str, update: OrderUpdateI
     return {"message": f"Quantity updated from {old_qty} to {new_qty}", "stock_adjusted": qty_diff if item["picking_status"] == "picked" else 0}
 
 @orders_router.delete("/{order_id}")
-async def delete_order(order_id: str, user: dict = Depends(require_admin)):
-    result = await db.orders.delete_one({"id": order_id})
-    if result.deleted_count == 0:
+async def delete_order(order_id: str, reason: Optional[str] = None, user: dict = Depends(require_admin)):
+    """Delete order - Admin only with logging"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return {"message": "Order deleted"}
+    
+    # Log the deletion before deleting
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "delete_order", "order",
+        f"Order {order['order_number']} with {len(order['items'])} items", "DELETED", reason
+    )
+    
+    # Reverse any picked item stock deductions
+    for item in order["items"]:
+        if item["picking_status"] == "picked":
+            product = await db.products.find_one({"sku": item["sku"]})
+            if product:
+                new_quantity = product["quantity_available"] + item["quantity_required"]
+                await db.products.update_one(
+                    {"sku": item["sku"]},
+                    {"$set": {
+                        "quantity_available": new_quantity,
+                        "last_updated": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                # Log stock reversal
+                transaction = StockTransaction(
+                    sku=item["sku"],
+                    change_type="reversal_order_delete",
+                    quantity_changed=item["quantity_required"],
+                    performed_by=user["user_id"]
+                )
+                await db.stock_transactions.insert_one(transaction.model_dump())
+    
+    await db.orders.delete_one({"id": order_id})
+    return {"message": "Order deleted", "order_number": order["order_number"]}
 
 # ==================== DASHBOARD ROUTES ====================
 
