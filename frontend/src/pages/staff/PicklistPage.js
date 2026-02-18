@@ -292,7 +292,7 @@ const PicklistPage = () => {
           </div>
 
           {/* Items with SKU Barcodes */}
-          {order.items.map((item, idx) => {
+          {order.items.map((item) => {
             const compactLoc = item.full_location_code.replace(/-/g, '');
             const shortName = item.product_name.length > 22 ? item.product_name.substring(0, 22) + '..' : item.product_name;
             return (
@@ -315,27 +315,11 @@ const PicklistPage = () => {
               </div>
             );
           })}
-            // Truncate product name
-            const shortName = item.product_name.length > 18 ? item.product_name.substring(0, 18) + '..' : item.product_name;
-            return (
-              <div key={item.id} style={{ fontSize: '9px', padding: '1px 0', borderBottom: '1px dotted #ccc' }}>
-                {idx + 1}. {shortName} | <strong>{compactLoc}</strong> | <strong>x{item.quantity_required}</strong>
-              </div>
-            );
-          })}
 
           {/* Footer - Minimal */}
           <div style={{ textAlign: 'center', marginTop: '3px', paddingTop: '2px', borderTop: '1px dashed #000' }}>
-            <div style={{ margin: '3px auto', display: 'flex', justifyContent: 'center' }}>
-              <QRCodeSVG 
-                value={qrData}
-                size={70}
-                level="L"
-                includeMargin={false}
-              />
-            </div>
             <div style={{ fontSize: '8px' }}>
-              Scan for Bill | {order.items.reduce((sum, i) => sum + i.quantity_required, 0)} items
+              {order.items.length} items | {format(new Date(), 'dd/MM HH:mm')}
             </div>
             <div style={{ fontSize: '8px', marginTop: '1px' }}>Thank You!</div>
           </div>
