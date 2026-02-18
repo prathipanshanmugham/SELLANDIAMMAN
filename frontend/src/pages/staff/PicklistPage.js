@@ -75,19 +75,6 @@ const PicklistPage = () => {
   const allPicked = order.items.every(item => item.picking_status === 'picked');
   const basePath = isAdmin() ? '/admin' : '/staff';
 
-  // Generate QR code data - Plain text SKUs (one per line, repeated for qty)
-  // This format works with barcode scanners that act as keyboard input
-  // Scanner sends: SKU1 [ENTER] SKU2 [ENTER] etc.
-  const qrLines = [];
-  qrLines.push(`#${order.order_number}`); // Order ID prefix
-  order.items.forEach(item => {
-    // Repeat SKU for each quantity unit
-    for (let i = 0; i < item.quantity_required; i++) {
-      qrLines.push(item.sku);
-    }
-  });
-  const qrData = qrLines.join('\n');
-
   return (
     <div className="animate-fade-in">
       {/* Screen View */}
