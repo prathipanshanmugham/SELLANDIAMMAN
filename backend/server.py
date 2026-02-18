@@ -170,6 +170,41 @@ class OrderResponse(BaseModel):
     created_at: str
     items: List[OrderItemResponse]
 
+# Order Modification Models
+class OrderModificationLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_id: str
+    order_number: str
+    modified_by: str
+    modified_by_name: str
+    modification_type: str  # add_item, remove_item, qty_change, status_change, customer_change
+    field_changed: str
+    old_value: str
+    new_value: str
+    reason: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class OrderUpdateCustomer(BaseModel):
+    customer_name: str
+    reason: Optional[str] = None
+
+class OrderUpdateStatus(BaseModel):
+    status: str = Field(..., pattern="^(pending|completed)$")
+    reason: Optional[str] = None
+
+class OrderAddItem(BaseModel):
+    sku: str
+    quantity_required: int = Field(..., ge=1)
+    reason: Optional[str] = None
+
+class OrderRemoveItem(BaseModel):
+    item_id: str
+    reason: Optional[str] = None
+
+class OrderUpdateItemQty(BaseModel):
+    quantity_required: int = Field(..., ge=1)
+    reason: Optional[str] = None
+
 class StockTransaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
