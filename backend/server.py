@@ -704,6 +704,250 @@ async def mark_item_picked(order_id: str, item_id: str, user: dict = Depends(get
     
     return {"message": "Item marked as picked", "stock_deducted": item["quantity_required"]}
 
+# ==================== ORDER MODIFICATION ROUTES ====================
+
+async def log_order_modification(order_id: str, order_number: str, user: dict, 
+                                  mod_type: str, field: str, old_val: str, new_val: str, reason: str = None):
+    """Helper function to log order modifications"""
+    log_entry = OrderModificationLog(
+        order_id=order_id,
+        order_number=order_number,
+        modified_by=user["user_id"],
+        modified_by_name=user["name"],
+        modification_type=mod_type,
+        field_changed=field,
+        old_value=old_val,
+        new_value=new_val,
+        reason=reason
+    )
+    await db.order_modification_logs.insert_one(log_entry.model_dump())
+
+@orders_router.get("/{order_id}/modification-history")
+async def get_order_modification_history(order_id: str, user: dict = Depends(get_current_user)):
+    """Get modification history for an order"""
+    logs = await db.order_modification_logs.find(
+        {"order_id": order_id}, 
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(100)
+    return logs
+
+@orders_router.patch("/{order_id}/customer")
+async def update_order_customer(order_id: str, update: OrderUpdateCustomer, user: dict = Depends(get_current_user)):
+    """Update customer name - staff can only edit pending orders"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Permission check
+    if user["role"] != "admin" and order["status"] == "completed":
+        raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
+    
+    old_value = order["customer_name"]
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {"customer_name": update.customer_name}}
+    )
+    
+    # Log modification
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "customer_change", "customer_name",
+        old_value, update.customer_name, update.reason
+    )
+    
+    return {"message": "Customer name updated", "old_value": old_value, "new_value": update.customer_name}
+
+@orders_router.patch("/{order_id}/status")
+async def update_order_status(order_id: str, update: OrderUpdateStatus, user: dict = Depends(require_admin)):
+    """Update order status - Admin only (can reopen completed orders)"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    old_status = order["status"]
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {"status": update.status}}
+    )
+    
+    # Log modification
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "status_change", "status",
+        old_status, update.status, update.reason
+    )
+    
+    return {"message": f"Order status changed from {old_status} to {update.status}"}
+
+@orders_router.post("/{order_id}/items")
+async def add_order_item(order_id: str, item: OrderAddItem, user: dict = Depends(get_current_user)):
+    """Add item to existing order"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Permission check
+    if user["role"] != "admin" and order["status"] == "completed":
+        raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
+    
+    # Get product details
+    product = await db.products.find_one({"sku": item.sku}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=400, detail=f"Product with SKU {item.sku} not found")
+    
+    # Check if item already exists
+    for existing_item in order["items"]:
+        if existing_item["sku"] == item.sku:
+            raise HTTPException(status_code=400, detail=f"Item {item.sku} already exists. Use quantity update instead.")
+    
+    new_item = {
+        "id": str(uuid.uuid4()),
+        "sku": item.sku,
+        "product_name": product["product_name"],
+        "full_location_code": product["full_location_code"],
+        "quantity_required": item.quantity_required,
+        "quantity_available": product["quantity_available"],
+        "picking_status": "pending"
+    }
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$push": {"items": new_item}, "$set": {"status": "pending"}}
+    )
+    
+    # Log modification
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "add_item", "items",
+        "", f"{item.sku} x{item.quantity_required}", item.reason
+    )
+    
+    return {"message": f"Item {item.sku} added", "item_id": new_item["id"]}
+
+@orders_router.delete("/{order_id}/items/{item_id}")
+async def remove_order_item(order_id: str, item_id: str, reason: Optional[str] = None, user: dict = Depends(get_current_user)):
+    """Remove item from order"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Permission check
+    if user["role"] != "admin" and order["status"] == "completed":
+        raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
+    
+    # Find the item
+    item_to_remove = None
+    for item in order["items"]:
+        if item["id"] == item_id:
+            item_to_remove = item
+            break
+    
+    if not item_to_remove:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # If item was picked, reverse the stock deduction
+    if item_to_remove["picking_status"] == "picked":
+        product = await db.products.find_one({"sku": item_to_remove["sku"]})
+        if product:
+            new_quantity = product["quantity_available"] + item_to_remove["quantity_required"]
+            await db.products.update_one(
+                {"sku": item_to_remove["sku"]},
+                {"$set": {
+                    "quantity_available": new_quantity,
+                    "last_updated": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            # Log stock reversal
+            transaction = StockTransaction(
+                sku=item_to_remove["sku"],
+                change_type="reversal_remove_item",
+                quantity_changed=item_to_remove["quantity_required"],
+                performed_by=user["user_id"]
+            )
+            await db.stock_transactions.insert_one(transaction.model_dump())
+    
+    # Remove the item
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$pull": {"items": {"id": item_id}}}
+    )
+    
+    # Log modification
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "remove_item", "items",
+        f"{item_to_remove['sku']} x{item_to_remove['quantity_required']}", "", reason
+    )
+    
+    return {"message": f"Item {item_to_remove['sku']} removed", "stock_restored": item_to_remove["quantity_required"] if item_to_remove["picking_status"] == "picked" else 0}
+
+@orders_router.patch("/{order_id}/items/{item_id}/quantity")
+async def update_item_quantity(order_id: str, item_id: str, update: OrderUpdateItemQty, user: dict = Depends(get_current_user)):
+    """Update item quantity"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Permission check
+    if user["role"] != "admin" and order["status"] == "completed":
+        raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
+    
+    # Find the item
+    item = None
+    for i in order["items"]:
+        if i["id"] == item_id:
+            item = i
+            break
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    old_qty = item["quantity_required"]
+    new_qty = update.quantity_required
+    qty_diff = new_qty - old_qty
+    
+    # If item was picked, adjust stock
+    if item["picking_status"] == "picked":
+        product = await db.products.find_one({"sku": item["sku"]})
+        if product:
+            # Reverse old deduction and apply new
+            adjusted_quantity = product["quantity_available"] - qty_diff
+            if adjusted_quantity < 0:
+                raise HTTPException(status_code=400, detail="Insufficient stock for quantity increase")
+            
+            await db.products.update_one(
+                {"sku": item["sku"]},
+                {"$set": {
+                    "quantity_available": adjusted_quantity,
+                    "last_updated": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            # Log stock adjustment
+            transaction = StockTransaction(
+                sku=item["sku"],
+                change_type="qty_adjustment",
+                quantity_changed=-qty_diff,
+                performed_by=user["user_id"]
+            )
+            await db.stock_transactions.insert_one(transaction.model_dump())
+    
+    # Update the quantity
+    await db.orders.update_one(
+        {"id": order_id, "items.id": item_id},
+        {"$set": {"items.$.quantity_required": new_qty}}
+    )
+    
+    # Log modification
+    await log_order_modification(
+        order_id, order["order_number"], user,
+        "qty_change", f"quantity ({item['sku']})",
+        str(old_qty), str(new_qty), update.reason
+    )
+    
+    return {"message": f"Quantity updated from {old_qty} to {new_qty}", "stock_adjusted": qty_diff if item["picking_status"] == "picked" else 0}
+
 @orders_router.delete("/{order_id}")
 async def delete_order(order_id: str, user: dict = Depends(require_admin)):
     result = await db.orders.delete_one({"id": order_id})
