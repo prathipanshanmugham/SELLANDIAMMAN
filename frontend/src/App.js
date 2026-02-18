@@ -84,6 +84,7 @@ function AppRoutes() {
         <Route path="staff" element={<StaffPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<PicklistPage />} />
+        <Route path="orders/:id/modify" element={<OrderModify />} />
       </Route>
       
       {/* Staff Routes */}
@@ -97,6 +98,7 @@ function AppRoutes() {
         <Route path="orders/new" element={<CreateOrder />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<PicklistPage />} />
+        <Route path="orders/:id/modify" element={<OrderModify />} />
       </Route>
       
       {/* Catch all */}
