@@ -246,32 +246,39 @@ const PicklistPage = () => {
           </div>
         </div>
 
-        {/* Master Barcode Section */}
+        {/* Item-Level Barcodes Section */}
         <div className="mt-6 card-industrial p-4 sm:p-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex items-center gap-2 mb-4">
-              <QrCode className="w-5 h-5 text-industrial-blue" />
-              <h3 className="font-heading text-lg font-bold text-slate-900">Master Barcode</h3>
-            </div>
-            <div className="bg-white p-4 rounded-sm border-2 border-slate-200">
-              <QRCodeSVG 
-                value={qrData}
-                size={180}
-                level="M"
-                includeMargin={true}
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-3 max-w-xs">
-              Scan to Auto-Add Items to Billing - Each SKU scans as keyboard input
-            </p>
-            <p className="font-mono text-[10px] text-slate-400 mt-1 bg-slate-50 px-2 py-1 rounded">
-              {order.items.reduce((sum, i) => sum + i.quantity_required, 0)} SKU entries
-            </p>
+          <div className="flex items-center gap-2 mb-4">
+            <Barcode className="w-5 h-5 text-industrial-blue" />
+            <h3 className="font-heading text-lg font-bold text-slate-900">SKU Barcodes</h3>
+            <span className="text-xs text-slate-500">(Scan for billing)</span>
           </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {order.items.map((item) => (
+              <div key={item.id} className="bg-white p-3 rounded-sm border border-slate-200">
+                <div className="text-center">
+                  <p className="font-medium text-sm truncate mb-1">{item.product_name}</p>
+                  <p className="text-xs text-slate-500 mb-2">{item.sku} × {item.quantity_required}</p>
+                  <BarcodeComponent 
+                    value={item.sku}
+                    format="CODE128"
+                    width={1.5}
+                    height={40}
+                    fontSize={10}
+                    displayValue={true}
+                    margin={0}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-3 text-center">
+            Scan each barcode and enter quantity in POS system
+          </p>
         </div>
       </div>
 
-      {/* Print View - Thermal (80mm) - Ultra Compact Format - NO BLANK PAPER */}
+      {/* Print View - Thermal (80mm) - Item-Level Barcodes */}
       <div className="print-only thermal-print hidden" id="print-receipt">
         <div className="receipt">
           {/* Header - Compact */}
@@ -284,10 +291,30 @@ const PicklistPage = () => {
             <strong>{order.order_number}</strong> | {format(new Date(order.created_at), 'dd/MM HH:mm')} | {order.customer_name}
           </div>
 
-          {/* Items - One Line Each: Product | Location | xQty */}
+          {/* Items with SKU Barcodes */}
           {order.items.map((item, idx) => {
-            // Compress location code: A-03-R07-S2-B05 -> A03R07S2B05
             const compactLoc = item.full_location_code.replace(/-/g, '');
+            const shortName = item.product_name.length > 22 ? item.product_name.substring(0, 22) + '..' : item.product_name;
+            return (
+              <div key={item.id} style={{ padding: '3px 0', borderBottom: '1px dotted #ccc', textAlign: 'center' }}>
+                <div style={{ fontSize: '9px', marginBottom: '1px' }}>
+                  {shortName}
+                </div>
+                <div style={{ fontSize: '8px', color: '#666', marginBottom: '2px' }}>
+                  {compactLoc} | x{item.quantity_required}
+                </div>
+                <BarcodeComponent 
+                  value={item.sku}
+                  format="CODE128"
+                  width={1.2}
+                  height={25}
+                  fontSize={8}
+                  displayValue={true}
+                  margin={0}
+                />
+              </div>
+            );
+          })}
             // Truncate product name
             const shortName = item.product_name.length > 18 ? item.product_name.substring(0, 18) + '..' : item.product_name;
             return (
