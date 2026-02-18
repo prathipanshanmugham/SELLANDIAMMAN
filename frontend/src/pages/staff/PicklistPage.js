@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
@@ -12,7 +12,8 @@ import {
   Package,
   Clock,
   CheckCircle,
-  Barcode
+  Barcode,
+  Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import BarcodeComponent from 'react-barcode';
