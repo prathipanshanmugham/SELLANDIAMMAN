@@ -8,6 +8,8 @@ import HomePage from "./pages/public/HomePage";
 import CataloguePage from "./pages/public/CataloguePage";
 import ContactPage from "./pages/public/ContactPage";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 // Dashboard Layout
 import DashboardLayout from "./components/layout/DashboardLayout";
