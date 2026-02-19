@@ -6,6 +6,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import { Zap, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -23,6 +26,19 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
+      // First attempt login to check for force_password_change
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      
+      if (response.data.force_password_change) {
+        // Store token temporarily for password change
+        localStorage.setItem('temp_token', response.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        toast.info('You must change your password before continuing');
+        navigate('/change-password');
+        return;
+      }
+      
+      // Normal login flow
       const user = await login(email, password);
       toast.success(`Welcome back, ${user.name}!`);
       navigate(user.role === 'admin' ? '/admin' : '/staff');
