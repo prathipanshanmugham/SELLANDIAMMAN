@@ -174,7 +174,7 @@ const LoginPage = () => {
 
             <div className="mt-8 pt-6 border-t border-slate-200">
               <p className="text-center text-sm text-slate-500">
-                Default Admin: <span className="font-mono text-xs">admin@sellandiamman.com / admin123</span>
+                Contact your administrator for login credentials
               </p>
             </div>
           </div>
