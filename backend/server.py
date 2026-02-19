@@ -96,6 +96,27 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     user: EmployeeResponse
+    force_password_change: bool = False  # Indicates if user must change password
+
+# Staff Password Management Models
+class ResetStaffPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=6)
+    force_change_on_login: bool = False  # Require user to change on next login
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+
+# Admin Security Question Models
+class SetSecurityQuestionRequest(BaseModel):
+    security_question: str
+    security_answer: str = Field(..., min_length=2)
+    current_password: str  # Verify admin knows current password
+
+class AdminResetPasswordRequest(BaseModel):
+    email: EmailStr
+    security_answer: str
+    new_password: str = Field(..., min_length=6)
 
 class ProductBase(BaseModel):
     sku: str
