@@ -72,6 +72,8 @@ function AppRoutes() {
         path="/login" 
         element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/staff'} replace /> : <LoginPage />} 
       />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
       
       {/* Admin Routes */}
       <Route path="/admin" element={
