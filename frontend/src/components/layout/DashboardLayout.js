@@ -33,6 +33,7 @@ const DashboardLayout = () => {
     { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/staff', label: 'Staff', icon: Users },
     { path: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+    { path: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
   const staffLinks = [
