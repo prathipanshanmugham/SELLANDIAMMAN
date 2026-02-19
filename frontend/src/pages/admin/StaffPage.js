@@ -109,6 +109,22 @@ const StaffPage = () => {
     }
   };
 
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetPasswordEmployee) return;
+    
+    try {
+      await axios.post(`${API_URL}/api/employees/${resetPasswordEmployee.id}/reset-password`, resetPasswordForm);
+      toast.success(`Password reset for ${resetPasswordEmployee.name}`);
+      setResetPasswordEmployee(null);
+      setResetPasswordForm({ new_password: '', force_change_on_login: true });
+      fetchEmployees();
+    } catch (error) {
+      const message = error.response?.data?.detail || 'Failed to reset password';
+      toast.error(message);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
