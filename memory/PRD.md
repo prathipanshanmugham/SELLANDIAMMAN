@@ -11,6 +11,40 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 
 ## Latest Updates
 
+### Feb 19, 2026 - Security Enhancements
+
+**1. Login Page Security:**
+- Admin credentials no longer displayed on login page
+- Generic placeholders ("Enter your email", "Enter your password")
+- "Contact your administrator for login credentials" message
+- "Admin forgot password?" link for password recovery
+
+**2. Staff Password Management (Admin):**
+- Reset staff passwords via Staff Management page
+- Option to "Require password change on next login"
+- Visual "Pwd Reset Required" badge for users with forced password change
+- Admins cannot reset other admin passwords via this method
+
+**3. Admin Password Recovery:**
+- Security question system for admin accounts
+- Set/update security question via Settings page
+- Reset password by answering security question (no email required)
+- Security answers are case-insensitive and hashed
+
+**New API Endpoints:**
+```
+POST /api/employees/{id}/reset-password  - Admin resets staff password
+POST /api/auth/change-password           - User changes own password
+POST /api/auth/set-security-question     - Admin sets security question
+GET  /api/auth/security-question/{email} - Get security question for admin
+POST /api/auth/reset-password-with-security - Reset admin password
+```
+
+**New Frontend Pages:**
+- `/admin/settings` - Account settings & security question
+- `/forgot-password` - Admin password recovery flow
+- `/change-password` - Forced password change page
+
 ### Feb 18, 2026 - Order Modification with Audit Logging
 
 **Complete Order Modification System:**
@@ -36,29 +70,6 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 - ✅ Change order status
 - ❌ Change order ID
 
-**Audit Log Entry Structure:**
-```javascript
-{
-  id: string,
-  order_id: string,
-  order_number: string,
-  modified_by: string,
-  modified_by_name: string,
-  modification_type: "add_item" | "remove_item" | "qty_change" | "status_change" | "customer_change",
-  field_changed: string,
-  old_value: string,
-  new_value: string,
-  reason: string (optional),
-  timestamp: datetime
-}
-```
-
-**Stock Adjustment Logic:**
-- If picked item removed → Stock restored
-- If picked item qty decreased → Stock restored
-- If picked item qty increased → Stock deducted
-- All stock changes logged to `stock_transactions`
-
 ### Item-Level SKU Barcodes
 - Code128 barcode per item (not master QR)
 - Barcode value = SKU only
@@ -72,38 +83,9 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 - Public shows price (₹85/meter)
 - Stock/location hidden
 
-## API Endpoints
-
-### Order Modification
-```
-GET  /api/orders/{id}/modification-history  - Get all modifications
-PATCH /api/orders/{id}/customer             - Update customer name
-PATCH /api/orders/{id}/status               - Update status (admin)
-POST  /api/orders/{id}/items                - Add item
-DELETE /api/orders/{id}/items/{item_id}     - Remove item
-PATCH /api/orders/{id}/items/{item_id}/quantity - Update quantity
-```
-
-### Other Endpoints
-- `/api/auth/login` - JWT login
-- `/api/products` - Full CRUD
-- `/api/orders` - Create, list, get
-- `/api/dashboard` - Stats, charts, presence
-
-## Frontend Pages
-
-### /orders/:id/modify (OrderModify.js)
-- **Modify Tab:** Edit customer, items, status
-- **History Tab:** Timeline view of all changes
-- Features:
-  - Edit customer name with reason
-  - Edit item quantity with reason
-  - Add/remove items
-  - Admin: Mark Complete / Reopen Order
-
 ## Database Collections
 - `products` - Product catalog
-- `employees` - Staff with presence status
+- `employees` - Staff with presence status, security questions
 - `orders` - Orders with items
 - `order_modification_logs` - Audit trail
 - `stock_transactions` - Stock movement history
@@ -118,7 +100,8 @@ PATCH /api/orders/{id}/items/{item_id}/quantity - Update quantity
 - Item-level SKU barcodes
 - Price in catalogue
 - Staff presence system
-- **Order modification with audit logging**
+- Order modification with audit logging
+- **Security enhancements (credentials hidden, password management, recovery)**
 
 ## Pending Features
 - [ ] PDF download for picklists
@@ -127,3 +110,4 @@ PATCH /api/orders/{id}/items/{item_id}/quantity - Update quantity
 
 ## Test Credentials
 - **Admin**: admin@sellandiamman.com / admin123
+- **Security Question Answer**: buddy
