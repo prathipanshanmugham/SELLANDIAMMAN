@@ -184,7 +184,14 @@ const StaffPage = () => {
                           `}>
                             {emp.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium">{emp.name}</span>
+                          <div>
+                            <span className="font-medium">{emp.name}</span>
+                            {emp.force_password_change && (
+                              <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">
+                                Pwd Reset Required
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="table-cell text-slate-600">{emp.email}</td>
@@ -219,16 +226,30 @@ const StaffPage = () => {
                         </button>
                       </td>
                       <td className="table-cell text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          data-testid={`delete-staff-${emp.email}`}
-                          onClick={() => setDeleteId(emp.id)}
-                          className="text-red-600 hover:text-red-700"
-                          disabled={emp.role === 'admin'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {emp.role !== 'admin' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              data-testid={`reset-password-${emp.email}`}
+                              onClick={() => setResetPasswordEmployee(emp)}
+                              className="text-amber-600 hover:text-amber-700"
+                              title="Reset Password"
+                            >
+                              <Key className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            data-testid={`delete-staff-${emp.email}`}
+                            onClick={() => setDeleteId(emp.id)}
+                            className="text-red-600 hover:text-red-700"
+                            disabled={emp.role === 'admin'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
