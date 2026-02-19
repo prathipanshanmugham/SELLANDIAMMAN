@@ -455,6 +455,123 @@ async def toggle_employee_status(employee_id: str, user: dict = Depends(require_
     await db.employees.update_one({"id": employee_id}, {"$set": {"status": new_status}})
     return {"message": f"Employee status changed to {new_status}"}
 
+# ==================== STAFF PASSWORD MANAGEMENT (ADMIN ONLY) ====================
+
+@employees_router.post("/{employee_id}/reset-password")
+async def reset_staff_password(employee_id: str, request: ResetStaffPasswordRequest, user: dict = Depends(require_admin)):
+    """Admin resets a staff member's password"""
+    employee = await db.employees.find_one({"id": employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Admins cannot reset other admin passwords through this endpoint
+    if employee.get("role") == "admin" and employee["id"] != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Cannot reset another admin's password. Use security question reset.")
+    
+    # Update password and optionally set force change flag
+    update_data = {
+        "password_hash": hash_password(request.new_password),
+        "force_password_change": request.force_change_on_login
+    }
+    
+    await db.employees.update_one({"id": employee_id}, {"$set": update_data})
+    
+    return {
+        "message": f"Password reset for {employee['name']}",
+        "force_change_on_login": request.force_change_on_login
+    }
+
+@auth_router.post("/change-password")
+async def change_own_password(request: ChangePasswordRequest, user: dict = Depends(get_current_user)):
+    """User changes their own password (used after forced password change)"""
+    employee = await db.employees.find_one({"id": user["user_id"]})
+    if not employee:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify current password
+    if not verify_password(request.current_password, employee.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    # Update password and clear force change flag
+    await db.employees.update_one(
+        {"id": user["user_id"]},
+        {"$set": {
+            "password_hash": hash_password(request.new_password),
+            "force_password_change": False
+        }}
+    )
+    
+    return {"message": "Password changed successfully"}
+
+# ==================== ADMIN SECURITY QUESTION SYSTEM ====================
+
+@auth_router.post("/set-security-question")
+async def set_security_question(request: SetSecurityQuestionRequest, user: dict = Depends(require_admin)):
+    """Admin sets their security question for password recovery"""
+    employee = await db.employees.find_one({"id": user["user_id"]})
+    if not employee:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify current password
+    if not verify_password(request.current_password, employee.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    
+    # Store security question and hashed answer
+    await db.employees.update_one(
+        {"id": user["user_id"]},
+        {"$set": {
+            "security_question": request.security_question,
+            "security_answer_hash": hash_password(request.security_answer.lower().strip())
+        }}
+    )
+    
+    return {"message": "Security question set successfully"}
+
+@auth_router.get("/security-question/{email}")
+async def get_security_question(email: str):
+    """Get security question for an admin (public endpoint for password reset)"""
+    employee = await db.employees.find_one({"email": email}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if employee.get("role") != "admin":
+        raise HTTPException(status_code=400, detail="Security question reset is only for admin accounts")
+    
+    security_question = employee.get("security_question")
+    if not security_question:
+        raise HTTPException(status_code=400, detail="No security question set. Contact system administrator.")
+    
+    return {"security_question": security_question}
+
+@auth_router.post("/reset-password-with-security")
+async def reset_password_with_security(request: AdminResetPasswordRequest):
+    """Admin resets their password using security question (public endpoint)"""
+    employee = await db.employees.find_one({"email": request.email}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if employee.get("role") != "admin":
+        raise HTTPException(status_code=400, detail="This reset method is only for admin accounts")
+    
+    security_answer_hash = employee.get("security_answer_hash")
+    if not security_answer_hash:
+        raise HTTPException(status_code=400, detail="No security question set")
+    
+    # Verify security answer (case-insensitive)
+    if not verify_password(request.security_answer.lower().strip(), security_answer_hash):
+        raise HTTPException(status_code=401, detail="Incorrect security answer")
+    
+    # Reset password
+    await db.employees.update_one(
+        {"email": request.email},
+        {"$set": {
+            "password_hash": hash_password(request.new_password),
+            "force_password_change": False
+        }}
+    )
+    
+    return {"message": "Password reset successfully. You can now login."}
+
 # ==================== PRODUCT ROUTES ====================
 
 @products_router.post("", response_model=ProductResponse)
