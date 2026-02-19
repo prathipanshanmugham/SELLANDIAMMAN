@@ -188,9 +188,18 @@ const LoginPage = () => {
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-slate-200">
+            <div className="mt-8 pt-6 border-t border-slate-200 space-y-3">
               <p className="text-center text-sm text-slate-500">
                 Contact your administrator for login credentials
+              </p>
+              <p className="text-center">
+                <Link 
+                  to="/forgot-password" 
+                  data-testid="forgot-password-link"
+                  className="text-sm text-industrial-blue hover:underline"
+                >
+                  Admin forgot password?
+                </Link>
               </p>
             </div>
           </div>
