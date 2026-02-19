@@ -90,6 +90,7 @@ function AppRoutes() {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<PicklistPage />} />
         <Route path="orders/:id/modify" element={<OrderModify />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       
       {/* Staff Routes */}
