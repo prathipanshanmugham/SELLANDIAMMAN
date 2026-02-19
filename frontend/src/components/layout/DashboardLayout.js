@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Zap
+  Zap,
+  Settings
 } from 'lucide-react';
 import { Button } from '../ui/button';
 
