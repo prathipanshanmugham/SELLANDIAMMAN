@@ -20,6 +20,7 @@ import ProductsPage from "./pages/admin/ProductsPage";
 import ProductFormPage from "./pages/admin/ProductFormPage";
 import StaffPage from "./pages/admin/StaffPage";
 import OrdersPage from "./pages/admin/OrdersPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 
 // Staff Pages
 import StaffDashboard from "./pages/staff/StaffDashboard";
