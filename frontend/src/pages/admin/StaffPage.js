@@ -12,7 +12,9 @@ import {
   UserCog,
   Shield,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Key,
+  AlertTriangle
 } from 'lucide-react';
 import {
   Dialog,
@@ -30,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
+import { Checkbox } from '../../components/ui/checkbox';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
