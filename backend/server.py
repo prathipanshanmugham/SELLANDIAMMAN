@@ -372,7 +372,7 @@ async def create_employee(employee: EmployeeCreate, user: dict = Depends(require
 
 @employees_router.get("", response_model=List[EmployeeResponse])
 async def get_employees(user: dict = Depends(require_admin)):
-    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0, "security_answer_hash": 0}).to_list(100)
     result = []
     for emp in employees:
         # Get the name of who updated presence
@@ -392,6 +392,8 @@ async def get_employees(user: dict = Depends(require_admin)):
             presence_updated_at=emp.get("presence_updated_at"),
             presence_updated_by=emp.get("presence_updated_by"),
             presence_updated_by_name=presence_updated_by_name,
+            force_password_change=emp.get("force_password_change", False),
+            has_security_question=bool(emp.get("security_question")),
             created_at=emp["created_at"]
         ))
     return result
