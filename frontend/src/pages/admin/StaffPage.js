@@ -41,6 +41,11 @@ const StaffPage = () => {
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [resetPasswordEmployee, setResetPasswordEmployee] = useState(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    new_password: '',
+    force_change_on_login: true
+  });
   
   const [newEmployee, setNewEmployee] = useState({
     name: '',
