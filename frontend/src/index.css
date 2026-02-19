@@ -140,6 +140,11 @@ code {
     background: #64748b;
 }
 
+/* Hide Emergent badge */
+#emergent-badge {
+    display: none !important;
+}
+
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
