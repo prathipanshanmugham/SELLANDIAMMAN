@@ -72,6 +72,8 @@ class EmployeeResponse(BaseModel):
     presence_updated_at: Optional[str] = None
     presence_updated_by: Optional[str] = None
     presence_updated_by_name: Optional[str] = None
+    force_password_change: bool = False
+    has_security_question: bool = False  # Whether admin has set up security question
     created_at: str
 
 class PresenceStatusUpdate(BaseModel):
