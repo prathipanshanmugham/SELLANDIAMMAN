@@ -123,7 +123,7 @@ const LoginPage = () => {
                   data-testid="login-email-input"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@sellandiamman.com"
+                  placeholder="Enter your email"
                   className="mt-2 input-industrial"
                   required
                   autoFocus
