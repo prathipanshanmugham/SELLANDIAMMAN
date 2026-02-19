@@ -279,10 +279,15 @@ const StaffPage = () => {
                         `}>
                           {emp.role}
                         </span>
+                        {emp.force_password_change && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">
+                            Pwd Reset
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 truncate">{emp.email}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleToggleStatus(emp.id)}
                         className="p-1"
@@ -294,14 +299,24 @@ const StaffPage = () => {
                         )}
                       </button>
                       {emp.role !== 'admin' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(emp.id)}
-                          className="p-1 h-8 w-8"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setResetPasswordEmployee(emp)}
+                            className="p-1 h-8 w-8"
+                          >
+                            <Key className="w-4 h-4 text-amber-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(emp.id)}
+                            className="p-1 h-8 w-8"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
