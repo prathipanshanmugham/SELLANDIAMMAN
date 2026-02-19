@@ -438,6 +438,85 @@ const StaffPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetPasswordEmployee} onOpenChange={() => {
+        setResetPasswordEmployee(null);
+        setResetPasswordForm({ new_password: '', force_change_on_login: true });
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl flex items-center gap-2">
+              <Key className="w-5 h-5 text-amber-600" />
+              Reset Password
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword} className="space-y-4 mt-4">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    Reset password for: {resetPasswordEmployee?.name}
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    {resetPasswordEmployee?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                New Password *
+              </Label>
+              <Input
+                data-testid="reset-password-input"
+                type="password"
+                value={resetPasswordForm.new_password}
+                onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, new_password: e.target.value })}
+                placeholder="Min 6 characters"
+                className="mt-2 input-industrial"
+                required
+                minLength={6}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="force_change"
+                data-testid="force-password-change-checkbox"
+                checked={resetPasswordForm.force_change_on_login}
+                onCheckedChange={(checked) => setResetPasswordForm({ ...resetPasswordForm, force_change_on_login: checked })}
+              />
+              <Label htmlFor="force_change" className="text-sm text-slate-600 cursor-pointer">
+                Require password change on next login
+              </Label>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setResetPasswordEmployee(null);
+                  setResetPasswordForm({ new_password: '', force_change_on_login: true });
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                data-testid="submit-reset-password"
+                className="flex-1 bg-amber-600 hover:bg-amber-700"
+              >
+                Reset Password
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
