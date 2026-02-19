@@ -311,6 +311,8 @@ async def login(request: LoginRequest):
     
     token = create_token(employee["id"], employee["email"], employee["role"], employee["name"])
     
+    force_password_change = employee.get("force_password_change", False)
+    
     return LoginResponse(
         token=token,
         user=EmployeeResponse(
@@ -319,8 +321,11 @@ async def login(request: LoginRequest):
             email=employee["email"],
             role=employee["role"],
             status=employee["status"],
+            force_password_change=force_password_change,
+            has_security_question=bool(employee.get("security_question")),
             created_at=employee["created_at"]
-        )
+        ),
+        force_password_change=force_password_change
     )
 
 @auth_router.get("/me", response_model=EmployeeResponse)
