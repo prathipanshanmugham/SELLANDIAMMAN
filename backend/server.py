@@ -339,6 +339,8 @@ async def get_me(user: dict = Depends(get_current_user)):
         email=employee["email"],
         role=employee["role"],
         status=employee["status"],
+        force_password_change=employee.get("force_password_change", False),
+        has_security_question=bool(employee.get("security_question")),
         created_at=employee["created_at"]
     )
 
