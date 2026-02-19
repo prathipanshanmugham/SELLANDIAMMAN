@@ -57,6 +57,9 @@ class Employee(EmployeeBase):
     presence_status: str = "present"  # present, permission, on_field, absent, on_leave
     presence_updated_at: Optional[str] = None
     presence_updated_by: Optional[str] = None
+    force_password_change: bool = False  # Requires password change on next login
+    security_question: Optional[str] = None  # For admin password reset
+    security_answer_hash: Optional[str] = None  # Hashed answer
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class EmployeeResponse(BaseModel):
