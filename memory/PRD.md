@@ -6,7 +6,7 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 ## Architecture
 - **Frontend**: React + Tailwind CSS + Shadcn/UI + Recharts + react-barcode
 - **Backend**: FastAPI + Motor (async MongoDB)
-- **Database**: MongoDB
+- **Database**: MongoDB Atlas (cloud-hosted)
 - **Authentication**: JWT-based (Admin/Staff roles)
 
 ## Latest Updates
