@@ -5,9 +5,25 @@ Build a private inventory + sales + picking management system for Sellandiamman 
 
 ## Architecture
 - **Frontend**: React + Tailwind CSS + Shadcn/UI + Recharts + react-barcode
-- **Backend**: FastAPI + Motor (async MongoDB)
-- **Database**: MongoDB Atlas (cloud-hosted)
+- **Backend**: FastAPI + aiomysql (async MySQL driver)
+- **Database**: MySQL (Hostinger)
 - **Authentication**: JWT-based (Admin/Staff roles)
+
+## Database Configuration
+```
+Host: 82.25.121.84
+Database: u217264814_Sellandiamman
+User: u217264814_sellandiamman
+```
+
+## MySQL Tables
+- `employees` - Staff with roles, presence status, security questions
+- `products` - Product catalog with location codes
+- `orders` - Sales orders
+- `order_items` - Items in each order
+- `order_modification_logs` - Audit trail for order changes
+- `stock_transactions` - Stock movement history
+- `presence_logs` - Staff presence history
 
 ## Latest Updates
 
