@@ -3,7 +3,6 @@ from fastapi import status as http_status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -13,18 +12,27 @@ import uuid
 from datetime import datetime, timezone
 import jwt
 import bcrypt
+import aiomysql
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MySQL Configuration
+MYSQL_CONFIG = {
+    'host': os.environ['MYSQL_HOST'],
+    'user': os.environ['MYSQL_USER'],
+    'password': os.environ['MYSQL_PASSWORD'],
+    'db': os.environ['MYSQL_DATABASE'],
+    'autocommit': True,
+    'charset': 'utf8mb4'
+}
 
 # JWT Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'sellandiamman-traders-secret-key-2024')
 JWT_ALGORITHM = "HS256"
+
+# Database pool
+pool = None
 
 # Create the main app
 app = FastAPI(title="Sellandiamman Traders API")
@@ -50,44 +58,22 @@ class EmployeeBase(BaseModel):
 class EmployeeCreate(EmployeeBase):
     password: str
 
-class Employee(EmployeeBase):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    status: str = "active"
-    presence_status: str = "present"  # present, permission, on_field, absent, on_leave
-    presence_updated_at: Optional[str] = None
-    presence_updated_by: Optional[str] = None
-    force_password_change: bool = False  # Requires password change on next login
-    security_question: Optional[str] = None  # For admin password reset
-    security_answer_hash: Optional[str] = None  # Hashed answer
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
 class EmployeeResponse(BaseModel):
-    id: str
+    id: int
     name: str
     email: str
     role: str
     status: str
     presence_status: Optional[str] = "present"
     presence_updated_at: Optional[str] = None
-    presence_updated_by: Optional[str] = None
+    presence_updated_by: Optional[int] = None
     presence_updated_by_name: Optional[str] = None
     force_password_change: bool = False
-    has_security_question: bool = False  # Whether admin has set up security question
+    has_security_question: bool = False
     created_at: str
 
 class PresenceStatusUpdate(BaseModel):
     presence_status: str = Field(..., pattern="^(present|permission|on_field|absent|on_leave)$")
-
-class PresenceLogEntry(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    employee_id: str
-    employee_name: str
-    previous_status: str
-    new_status: str
-    changed_by: str
-    changed_by_name: str
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -96,22 +82,20 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     user: EmployeeResponse
-    force_password_change: bool = False  # Indicates if user must change password
+    force_password_change: bool = False
 
-# Staff Password Management Models
 class ResetStaffPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6)
-    force_change_on_login: bool = False  # Require user to change on next login
+    force_change_on_login: bool = False
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=6)
 
-# Admin Security Question Models
 class SetSecurityQuestionRequest(BaseModel):
     security_question: str
     security_answer: str = Field(..., min_length=2)
-    current_password: str  # Verify admin knows current password
+    current_password: str
 
 class AdminResetPasswordRequest(BaseModel):
     email: EmailStr
@@ -134,20 +118,14 @@ class ProductBase(BaseModel):
     image_url: Optional[str] = ""
     selling_price: float = Field(default=0, ge=0)
     mrp: Optional[float] = Field(default=0, ge=0)
-    unit: Optional[str] = "piece"  # piece, meter, kg, box, etc.
+    unit: Optional[str] = "piece"
     gst_percentage: Optional[float] = Field(default=18, ge=0, le=100)
 
 class ProductCreate(ProductBase):
     pass
 
-class Product(ProductBase):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    full_location_code: str = ""
-    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
 class ProductResponse(BaseModel):
-    id: str
+    id: int
     sku: str
     product_name: str
     category: str
@@ -173,7 +151,7 @@ class OrderItemBase(BaseModel):
     quantity_required: int = Field(..., ge=1)
 
 class OrderItemResponse(BaseModel):
-    id: str
+    id: int
     sku: str
     product_name: str
     full_location_code: str
@@ -184,31 +162,17 @@ class OrderItemResponse(BaseModel):
 class OrderCreate(BaseModel):
     customer_name: str
     items: List[OrderItemBase]
-    order_id: Optional[str] = None  # Optional custom order ID
+    order_id: Optional[str] = None
 
 class OrderResponse(BaseModel):
-    id: str
+    id: int
     order_number: str
     customer_name: str
-    created_by: str
+    created_by: int
     created_by_name: str
     status: str
     created_at: str
     items: List[OrderItemResponse]
-
-# Order Modification Models
-class OrderModificationLog(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    order_id: str
-    order_number: str
-    modified_by: str
-    modified_by_name: str
-    modification_type: str  # add_item, remove_item, qty_change, status_change, customer_change
-    field_changed: str
-    old_value: str
-    new_value: str
-    reason: Optional[str] = None
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class OrderUpdateCustomer(BaseModel):
     customer_name: str
@@ -223,22 +187,9 @@ class OrderAddItem(BaseModel):
     quantity_required: int = Field(..., ge=1)
     reason: Optional[str] = None
 
-class OrderRemoveItem(BaseModel):
-    item_id: str
-    reason: Optional[str] = None
-
 class OrderUpdateItemQty(BaseModel):
     quantity_required: int = Field(..., ge=1)
     reason: Optional[str] = None
-
-class StockTransaction(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    sku: str
-    change_type: str
-    quantity_changed: int
-    performed_by: str
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class DashboardStats(BaseModel):
     total_products: int
@@ -261,7 +212,6 @@ class PublicProduct(BaseModel):
 # ==================== HELPER FUNCTIONS ====================
 
 def generate_location_code(zone: str, aisle: int, rack: int, shelf: int, bin: int) -> str:
-    """Generate full location code: {Zone}-{Aisle(2digit)}-R{Rack(2digit)}-S{Shelf}-B{Bin(2digit)}"""
     return f"{zone}-{str(aisle).zfill(2)}-R{str(rack).zfill(2)}-S{shelf}-B{str(bin).zfill(2)}"
 
 def hash_password(password: str) -> str:
@@ -270,15 +220,21 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_token(user_id: str, email: str, role: str, name: str) -> str:
+def create_token(user_id: int, email: str, role: str, name: str) -> str:
     payload = {
         "user_id": user_id,
         "email": email,
         "role": role,
         "name": name,
-        "exp": datetime.now(timezone.utc).timestamp() + 86400  # 24 hours
+        "exp": datetime.now(timezone.utc).timestamp() + 86400
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_db():
+    global pool
+    if pool is None:
+        pool = await aiomysql.create_pool(**MYSQL_CONFIG)
+    return pool
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -299,7 +255,15 @@ async def require_admin(user: dict = Depends(get_current_user)):
 
 @auth_router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
-    employee = await db.employees.find_one({"email": request.email}, {"_id": 0})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT * FROM employees WHERE email = %s",
+                (request.email,)
+            )
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -310,8 +274,7 @@ async def login(request: LoginRequest):
         raise HTTPException(status_code=401, detail="Account is inactive")
     
     token = create_token(employee["id"], employee["email"], employee["role"], employee["name"])
-    
-    force_password_change = employee.get("force_password_change", False)
+    force_password_change = bool(employee.get("force_password_change", 0))
     
     return LoginResponse(
         token=token,
@@ -323,218 +286,87 @@ async def login(request: LoginRequest):
             status=employee["status"],
             force_password_change=force_password_change,
             has_security_question=bool(employee.get("security_question")),
-            created_at=employee["created_at"]
+            created_at=str(employee["created_at"])
         ),
         force_password_change=force_password_change
     )
 
 @auth_router.get("/me", response_model=EmployeeResponse)
 async def get_me(user: dict = Depends(get_current_user)):
-    employee = await db.employees.find_one({"id": user["user_id"]}, {"_id": 0})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE id = %s", (user["user_id"],))
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=404, detail="User not found")
+    
     return EmployeeResponse(
         id=employee["id"],
         name=employee["name"],
         email=employee["email"],
         role=employee["role"],
         status=employee["status"],
-        force_password_change=employee.get("force_password_change", False),
+        force_password_change=bool(employee.get("force_password_change", 0)),
         has_security_question=bool(employee.get("security_question")),
-        created_at=employee["created_at"]
+        created_at=str(employee["created_at"])
     )
-
-# ==================== EMPLOYEE ROUTES ====================
-
-@employees_router.post("", response_model=EmployeeResponse)
-async def create_employee(employee: EmployeeCreate, user: dict = Depends(require_admin)):
-    existing = await db.employees.find_one({"email": employee.email})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already exists")
-    
-    emp_obj = Employee(
-        name=employee.name,
-        email=employee.email,
-        role=employee.role
-    )
-    
-    doc = emp_obj.model_dump()
-    doc["password_hash"] = hash_password(employee.password)
-    
-    await db.employees.insert_one(doc)
-    
-    return EmployeeResponse(
-        id=doc["id"],
-        name=doc["name"],
-        email=doc["email"],
-        role=doc["role"],
-        status=doc["status"],
-        created_at=doc["created_at"]
-    )
-
-@employees_router.get("", response_model=List[EmployeeResponse])
-async def get_employees(user: dict = Depends(require_admin)):
-    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0, "security_answer_hash": 0}).to_list(100)
-    result = []
-    for emp in employees:
-        # Get the name of who updated presence
-        presence_updated_by_name = None
-        if emp.get("presence_updated_by"):
-            updater = await db.employees.find_one({"id": emp["presence_updated_by"]}, {"_id": 0, "name": 1})
-            if updater:
-                presence_updated_by_name = updater.get("name")
-        
-        result.append(EmployeeResponse(
-            id=emp["id"],
-            name=emp["name"],
-            email=emp["email"],
-            role=emp["role"],
-            status=emp["status"],
-            presence_status=emp.get("presence_status", "present"),
-            presence_updated_at=emp.get("presence_updated_at"),
-            presence_updated_by=emp.get("presence_updated_by"),
-            presence_updated_by_name=presence_updated_by_name,
-            force_password_change=emp.get("force_password_change", False),
-            has_security_question=bool(emp.get("security_question")),
-            created_at=emp["created_at"]
-        ))
-    return result
-
-@employees_router.get("/presence-log")
-async def get_presence_log(limit: int = 50, user: dict = Depends(require_admin)):
-    """Get presence status change history"""
-    logs = await db.presence_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit).to_list(limit)
-    return logs
-
-@employees_router.patch("/{employee_id}/presence")
-async def update_presence_status(employee_id: str, update: PresenceStatusUpdate, user: dict = Depends(require_admin)):
-    """Update staff presence status (admin only)"""
-    employee = await db.employees.find_one({"id": employee_id})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    previous_status = employee.get("presence_status", "present")
-    new_status = update.presence_status
-    
-    # Update employee presence
-    await db.employees.update_one(
-        {"id": employee_id},
-        {"$set": {
-            "presence_status": new_status,
-            "presence_updated_at": datetime.now(timezone.utc).isoformat(),
-            "presence_updated_by": user["user_id"]
-        }}
-    )
-    
-    # Log the change
-    log_entry = PresenceLogEntry(
-        employee_id=employee_id,
-        employee_name=employee["name"],
-        previous_status=previous_status,
-        new_status=new_status,
-        changed_by=user["user_id"],
-        changed_by_name=user["name"]
-    )
-    await db.presence_logs.insert_one(log_entry.model_dump())
-    
-    return {"message": f"Presence status updated to {new_status}"}
-
-@employees_router.delete("/{employee_id}")
-async def delete_employee(employee_id: str, user: dict = Depends(require_admin)):
-    if user["user_id"] == employee_id:
-        raise HTTPException(status_code=400, detail="Cannot delete yourself")
-    
-    result = await db.employees.delete_one({"id": employee_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    return {"message": "Employee deleted"}
-
-@employees_router.patch("/{employee_id}/status")
-async def toggle_employee_status(employee_id: str, user: dict = Depends(require_admin)):
-    employee = await db.employees.find_one({"id": employee_id})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    new_status = "inactive" if employee["status"] == "active" else "active"
-    await db.employees.update_one({"id": employee_id}, {"$set": {"status": new_status}})
-    return {"message": f"Employee status changed to {new_status}"}
-
-# ==================== STAFF PASSWORD MANAGEMENT (ADMIN ONLY) ====================
-
-@employees_router.post("/{employee_id}/reset-password")
-async def reset_staff_password(employee_id: str, request: ResetStaffPasswordRequest, user: dict = Depends(require_admin)):
-    """Admin resets a staff member's password"""
-    employee = await db.employees.find_one({"id": employee_id})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Admins cannot reset other admin passwords through this endpoint
-    if employee.get("role") == "admin" and employee["id"] != user["user_id"]:
-        raise HTTPException(status_code=403, detail="Cannot reset another admin's password. Use security question reset.")
-    
-    # Update password and optionally set force change flag
-    update_data = {
-        "password_hash": hash_password(request.new_password),
-        "force_password_change": request.force_change_on_login
-    }
-    
-    await db.employees.update_one({"id": employee_id}, {"$set": update_data})
-    
-    return {
-        "message": f"Password reset for {employee['name']}",
-        "force_change_on_login": request.force_change_on_login
-    }
 
 @auth_router.post("/change-password")
 async def change_own_password(request: ChangePasswordRequest, user: dict = Depends(get_current_user)):
-    """User changes their own password (used after forced password change)"""
-    employee = await db.employees.find_one({"id": user["user_id"]})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE id = %s", (user["user_id"],))
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Verify current password
     if not verify_password(request.current_password, employee.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
     
-    # Update password and clear force change flag
-    await db.employees.update_one(
-        {"id": user["user_id"]},
-        {"$set": {
-            "password_hash": hash_password(request.new_password),
-            "force_password_change": False
-        }}
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE employees SET password_hash = %s, force_password_change = 0 WHERE id = %s",
+                (hash_password(request.new_password), user["user_id"])
+            )
     
     return {"message": "Password changed successfully"}
 
-# ==================== ADMIN SECURITY QUESTION SYSTEM ====================
-
 @auth_router.post("/set-security-question")
 async def set_security_question(request: SetSecurityQuestionRequest, user: dict = Depends(require_admin)):
-    """Admin sets their security question for password recovery"""
-    employee = await db.employees.find_one({"id": user["user_id"]})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE id = %s", (user["user_id"],))
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Verify current password
     if not verify_password(request.current_password, employee.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
     
-    # Store security question and hashed answer
-    await db.employees.update_one(
-        {"id": user["user_id"]},
-        {"$set": {
-            "security_question": request.security_question,
-            "security_answer_hash": hash_password(request.security_answer.lower().strip())
-        }}
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE employees SET security_question = %s, security_answer_hash = %s WHERE id = %s",
+                (request.security_question, hash_password(request.security_answer.lower().strip()), user["user_id"])
+            )
     
     return {"message": "Security question set successfully"}
 
 @auth_router.get("/security-question/{email}")
 async def get_security_question(email: str):
-    """Get security question for an admin (public endpoint for password reset)"""
-    employee = await db.employees.find_one({"email": email}, {"_id": 0})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE email = %s", (email,))
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -549,8 +381,12 @@ async def get_security_question(email: str):
 
 @auth_router.post("/reset-password-with-security")
 async def reset_password_with_security(request: AdminResetPasswordRequest):
-    """Admin resets their password using security question (public endpoint)"""
-    employee = await db.employees.find_one({"email": request.email}, {"_id": 0})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE email = %s", (request.email,))
+            employee = await cur.fetchone()
+    
     if not employee:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -561,42 +397,220 @@ async def reset_password_with_security(request: AdminResetPasswordRequest):
     if not security_answer_hash:
         raise HTTPException(status_code=400, detail="No security question set")
     
-    # Verify security answer (case-insensitive)
     if not verify_password(request.security_answer.lower().strip(), security_answer_hash):
         raise HTTPException(status_code=401, detail="Incorrect security answer")
     
-    # Reset password
-    await db.employees.update_one(
-        {"email": request.email},
-        {"$set": {
-            "password_hash": hash_password(request.new_password),
-            "force_password_change": False
-        }}
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE employees SET password_hash = %s, force_password_change = 0 WHERE email = %s",
+                (hash_password(request.new_password), request.email)
+            )
     
     return {"message": "Password reset successfully. You can now login."}
+
+# ==================== EMPLOYEE ROUTES ====================
+
+@employees_router.post("", response_model=EmployeeResponse)
+async def create_employee(employee: EmployeeCreate, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT id FROM employees WHERE email = %s", (employee.email,))
+            existing = await cur.fetchone()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO employees (name, email, role, status, password_hash, presence_status, created_at) 
+                   VALUES (%s, %s, %s, 'active', %s, 'present', NOW())""",
+                (employee.name, employee.email, employee.role, hash_password(employee.password))
+            )
+            emp_id = cur.lastrowid
+    
+    return EmployeeResponse(
+        id=emp_id,
+        name=employee.name,
+        email=employee.email,
+        role=employee.role,
+        status="active",
+        created_at=datetime.now(timezone.utc).isoformat()
+    )
+
+@employees_router.get("", response_model=List[EmployeeResponse])
+async def get_employees(user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees ORDER BY created_at DESC")
+            employees = await cur.fetchall()
+    
+    result = []
+    for emp in employees:
+        presence_updated_by_name = None
+        if emp.get("presence_updated_by"):
+            async with db.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute("SELECT name FROM employees WHERE id = %s", (emp["presence_updated_by"],))
+                    updater = await cur.fetchone()
+                    if updater:
+                        presence_updated_by_name = updater.get("name")
+        
+        result.append(EmployeeResponse(
+            id=emp["id"],
+            name=emp["name"],
+            email=emp["email"],
+            role=emp["role"],
+            status=emp["status"],
+            presence_status=emp.get("presence_status", "present"),
+            presence_updated_at=str(emp["presence_updated_at"]) if emp.get("presence_updated_at") else None,
+            presence_updated_by=emp.get("presence_updated_by"),
+            presence_updated_by_name=presence_updated_by_name,
+            force_password_change=bool(emp.get("force_password_change", 0)),
+            has_security_question=bool(emp.get("security_question")),
+            created_at=str(emp["created_at"])
+        ))
+    return result
+
+@employees_router.get("/presence-log")
+async def get_presence_log(limit: int = 50, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT * FROM presence_logs ORDER BY created_at DESC LIMIT %s",
+                (limit,)
+            )
+            logs = await cur.fetchall()
+    return [dict(log) for log in logs]
+
+@employees_router.patch("/{employee_id}/presence")
+async def update_presence_status(employee_id: int, update: PresenceStatusUpdate, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+            employee = await cur.fetchone()
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    previous_status = employee.get("presence_status", "present")
+    new_status = update.presence_status
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """UPDATE employees SET presence_status = %s, presence_updated_at = NOW(), 
+                   presence_updated_by = %s WHERE id = %s""",
+                (new_status, user["user_id"], employee_id)
+            )
+            await cur.execute(
+                """INSERT INTO presence_logs (employee_id, employee_name, previous_status, new_status, 
+                   changed_by, changed_by_name, created_at) VALUES (%s, %s, %s, %s, %s, %s, NOW())""",
+                (employee_id, employee["name"], previous_status, new_status, user["user_id"], user["name"])
+            )
+    
+    return {"message": f"Presence status updated to {new_status}"}
+
+@employees_router.delete("/{employee_id}")
+async def delete_employee(employee_id: int, user: dict = Depends(require_admin)):
+    if user["user_id"] == employee_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            result = await cur.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
+    
+    if result == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return {"message": "Employee deleted"}
+
+@employees_router.patch("/{employee_id}/status")
+async def toggle_employee_status(employee_id: int, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT status FROM employees WHERE id = %s", (employee_id,))
+            employee = await cur.fetchone()
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    new_status = "inactive" if employee["status"] == "active" else "active"
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("UPDATE employees SET status = %s WHERE id = %s", (new_status, employee_id))
+    
+    return {"message": f"Employee status changed to {new_status}"}
+
+@employees_router.post("/{employee_id}/reset-password")
+async def reset_staff_password(employee_id: int, request: ResetStaffPasswordRequest, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+            employee = await cur.fetchone()
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    if employee.get("role") == "admin" and employee["id"] != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Cannot reset another admin's password. Use security question reset.")
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE employees SET password_hash = %s, force_password_change = %s WHERE id = %s",
+                (hash_password(request.new_password), 1 if request.force_change_on_login else 0, employee_id)
+            )
+    
+    return {"message": f"Password reset for {employee['name']}", "force_change_on_login": request.force_change_on_login}
 
 # ==================== PRODUCT ROUTES ====================
 
 @products_router.post("", response_model=ProductResponse)
 async def create_product(product: ProductCreate, user: dict = Depends(require_admin)):
-    existing = await db.products.find_one({"sku": product.sku})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT id FROM products WHERE sku = %s", (product.sku,))
+            existing = await cur.fetchone()
+    
     if existing:
         raise HTTPException(status_code=400, detail="SKU already exists")
     
-    full_location_code = generate_location_code(
-        product.zone, product.aisle, product.rack, product.shelf, product.bin
+    full_location_code = generate_location_code(product.zone, product.aisle, product.rack, product.shelf, product.bin)
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO products (sku, product_name, category, brand, zone, aisle, rack, shelf, bin, 
+                   full_location_code, quantity_available, reorder_level, supplier, image_url, selling_price, 
+                   mrp, unit, gst_percentage, last_updated, created_at) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())""",
+                (product.sku, product.product_name, product.category, product.brand or "", product.zone,
+                 product.aisle, product.rack, product.shelf, product.bin, full_location_code,
+                 product.quantity_available, product.reorder_level, product.supplier or "", 
+                 product.image_url or "", product.selling_price, product.mrp or 0, 
+                 product.unit or "piece", product.gst_percentage or 18)
+            )
+            prod_id = cur.lastrowid
+    
+    return ProductResponse(
+        id=prod_id, sku=product.sku, product_name=product.product_name, category=product.category,
+        brand=product.brand or "", zone=product.zone, aisle=product.aisle, rack=product.rack,
+        shelf=product.shelf, bin=product.bin, full_location_code=full_location_code,
+        quantity_available=product.quantity_available, reorder_level=product.reorder_level,
+        supplier=product.supplier or "", image_url=product.image_url or "", 
+        selling_price=product.selling_price, mrp=product.mrp or 0, unit=product.unit or "piece",
+        gst_percentage=product.gst_percentage or 18, last_updated=datetime.now(timezone.utc).isoformat()
     )
-    
-    prod_obj = Product(
-        **product.model_dump(),
-        full_location_code=full_location_code
-    )
-    
-    doc = prod_obj.model_dump()
-    await db.products.insert_one(doc)
-    
-    return ProductResponse(**doc)
 
 @products_router.get("", response_model=List[ProductResponse])
 async def get_products(
@@ -608,82 +622,148 @@ async def get_products(
     skip: int = 0,
     user: dict = Depends(get_current_user)
 ):
-    query = {}
+    db = await get_db()
+    query = "SELECT * FROM products WHERE 1=1"
+    params = []
     
     if search:
-        query["$or"] = [
-            {"sku": {"$regex": search, "$options": "i"}},
-            {"product_name": {"$regex": search, "$options": "i"}},
-            {"full_location_code": {"$regex": search, "$options": "i"}}
-        ]
+        query += " AND (sku LIKE %s OR product_name LIKE %s OR full_location_code LIKE %s)"
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param, search_param])
     
     if category:
-        query["category"] = category
+        query += " AND category = %s"
+        params.append(category)
     
     if zone:
-        query["zone"] = zone
+        query += " AND zone = %s"
+        params.append(zone)
     
     if low_stock:
-        query["$expr"] = {"$lte": ["$quantity_available", "$reorder_level"]}
+        query += " AND quantity_available <= reorder_level"
     
-    products = await db.products.find(query, {"_id": 0}).skip(skip).limit(min(limit, 500)).to_list(min(limit, 500))
-    return [ProductResponse(**prod) for prod in products]
+    query += f" ORDER BY product_name LIMIT {min(limit, 500)} OFFSET {skip}"
+    
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(query, params)
+            products = await cur.fetchall()
+    
+    return [ProductResponse(
+        id=p["id"], sku=p["sku"], product_name=p["product_name"], category=p["category"],
+        brand=p["brand"] or "", zone=p["zone"], aisle=p["aisle"], rack=p["rack"],
+        shelf=p["shelf"], bin=p["bin"], full_location_code=p["full_location_code"],
+        quantity_available=p["quantity_available"], reorder_level=p["reorder_level"],
+        supplier=p["supplier"] or "", image_url=p["image_url"] or "",
+        selling_price=float(p["selling_price"] or 0), mrp=float(p["mrp"] or 0),
+        unit=p["unit"] or "piece", gst_percentage=float(p["gst_percentage"] or 18),
+        last_updated=str(p["last_updated"])
+    ) for p in products]
 
 @products_router.get("/categories")
 async def get_categories(user: dict = Depends(get_current_user)):
-    categories = await db.products.distinct("category")
-    return categories
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT DISTINCT category FROM products ORDER BY category")
+            categories = await cur.fetchall()
+    return [c[0] for c in categories if c[0]]
 
 @products_router.get("/zones")
 async def get_zones(user: dict = Depends(get_current_user)):
-    zones = await db.products.distinct("zone")
-    return zones
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT DISTINCT zone FROM products ORDER BY zone")
+            zones = await cur.fetchall()
+    return [z[0] for z in zones if z[0]]
 
 @products_router.get("/{product_id}", response_model=ProductResponse)
-async def get_product(product_id: str, user: dict = Depends(get_current_user)):
-    product = await db.products.find_one({"id": product_id}, {"_id": 0})
-    if not product:
+async def get_product(product_id: int, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
+            p = await cur.fetchone()
+    
+    if not p:
         raise HTTPException(status_code=404, detail="Product not found")
-    return ProductResponse(**product)
+    
+    return ProductResponse(
+        id=p["id"], sku=p["sku"], product_name=p["product_name"], category=p["category"],
+        brand=p["brand"] or "", zone=p["zone"], aisle=p["aisle"], rack=p["rack"],
+        shelf=p["shelf"], bin=p["bin"], full_location_code=p["full_location_code"],
+        quantity_available=p["quantity_available"], reorder_level=p["reorder_level"],
+        supplier=p["supplier"] or "", image_url=p["image_url"] or "",
+        selling_price=float(p["selling_price"] or 0), mrp=float(p["mrp"] or 0),
+        unit=p["unit"] or "piece", gst_percentage=float(p["gst_percentage"] or 18),
+        last_updated=str(p["last_updated"])
+    )
 
 @products_router.put("/{product_id}", response_model=ProductResponse)
-async def update_product(product_id: str, product: ProductCreate, user: dict = Depends(require_admin)):
-    existing = await db.products.find_one({"id": product_id})
+async def update_product(product_id: int, product: ProductCreate, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
+            existing = await cur.fetchone()
+    
     if not existing:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    sku_check = await db.products.find_one({"sku": product.sku, "id": {"$ne": product_id}})
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT id FROM products WHERE sku = %s AND id != %s", (product.sku, product_id))
+            sku_check = await cur.fetchone()
+    
     if sku_check:
         raise HTTPException(status_code=400, detail="SKU already exists")
     
-    full_location_code = generate_location_code(
-        product.zone, product.aisle, product.rack, product.shelf, product.bin
+    full_location_code = generate_location_code(product.zone, product.aisle, product.rack, product.shelf, product.bin)
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """UPDATE products SET sku=%s, product_name=%s, category=%s, brand=%s, zone=%s, 
+                   aisle=%s, rack=%s, shelf=%s, bin=%s, full_location_code=%s, quantity_available=%s,
+                   reorder_level=%s, supplier=%s, image_url=%s, selling_price=%s, mrp=%s, unit=%s,
+                   gst_percentage=%s, last_updated=NOW() WHERE id=%s""",
+                (product.sku, product.product_name, product.category, product.brand or "", product.zone,
+                 product.aisle, product.rack, product.shelf, product.bin, full_location_code,
+                 product.quantity_available, product.reorder_level, product.supplier or "",
+                 product.image_url or "", product.selling_price, product.mrp or 0,
+                 product.unit or "piece", product.gst_percentage or 18, product_id)
+            )
+    
+    return ProductResponse(
+        id=product_id, sku=product.sku, product_name=product.product_name, category=product.category,
+        brand=product.brand or "", zone=product.zone, aisle=product.aisle, rack=product.rack,
+        shelf=product.shelf, bin=product.bin, full_location_code=full_location_code,
+        quantity_available=product.quantity_available, reorder_level=product.reorder_level,
+        supplier=product.supplier or "", image_url=product.image_url or "",
+        selling_price=product.selling_price, mrp=product.mrp or 0, unit=product.unit or "piece",
+        gst_percentage=product.gst_percentage or 18, last_updated=datetime.now(timezone.utc).isoformat()
     )
-    
-    update_data = product.model_dump()
-    update_data["full_location_code"] = full_location_code
-    update_data["last_updated"] = datetime.now(timezone.utc).isoformat()
-    
-    await db.products.update_one({"id": product_id}, {"$set": update_data})
-    
-    updated = await db.products.find_one({"id": product_id}, {"_id": 0})
-    return ProductResponse(**updated)
 
 @products_router.delete("/{product_id}")
-async def delete_product(product_id: str, user: dict = Depends(require_admin)):
-    result = await db.products.delete_one({"id": product_id})
-    if result.deleted_count == 0:
+async def delete_product(product_id: int, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            result = await cur.execute("DELETE FROM products WHERE id = %s", (product_id,))
+    
+    if result == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted"}
 
 @products_router.patch("/{product_id}/stock")
-async def adjust_stock(
-    product_id: str,
-    quantity: int,
-    reason: str = "manual_adjustment",
-    user: dict = Depends(require_admin)
-):
-    product = await db.products.find_one({"id": product_id})
+async def adjust_stock(product_id: int, quantity: int, reason: str = "manual_adjustment", user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
+            product = await cur.fetchone()
+    
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
@@ -691,39 +771,34 @@ async def adjust_stock(
     if new_quantity < 0:
         raise HTTPException(status_code=400, detail="Stock cannot be negative")
     
-    await db.products.update_one(
-        {"id": product_id},
-        {"$set": {
-            "quantity_available": new_quantity,
-            "last_updated": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    transaction = StockTransaction(
-        sku=product["sku"],
-        change_type=reason,
-        quantity_changed=quantity,
-        performed_by=user["user_id"]
-    )
-    await db.stock_transactions.insert_one(transaction.model_dump())
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE products SET quantity_available = %s, last_updated = NOW() WHERE id = %s",
+                (new_quantity, product_id)
+            )
+            await cur.execute(
+                """INSERT INTO stock_transactions (sku, change_type, quantity_changed, performed_by, created_at) 
+                   VALUES (%s, %s, %s, %s, NOW())""",
+                (product["sku"], reason, quantity, user["user_id"])
+            )
     
     return {"message": "Stock adjusted", "new_quantity": new_quantity}
 
 # ==================== ORDER ROUTES ====================
 
 async def generate_next_order_number():
-    """Generate next sequential order number: ORD-0001, ORD-0002, etc."""
-    # Find the highest order number
-    pipeline = [
-        {"$match": {"order_number": {"$regex": "^ORD-\\d{4}$"}}},
-        {"$project": {"num": {"$toInt": {"$substr": ["$order_number", 4, 4]}}}},
-        {"$sort": {"num": -1}},
-        {"$limit": 1}
-    ]
-    result = await db.orders.aggregate(pipeline).to_list(1)
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT order_number FROM orders WHERE order_number REGEXP '^ORD-[0-9]{4}$' 
+                   ORDER BY CAST(SUBSTRING(order_number, 5) AS UNSIGNED) DESC LIMIT 1"""
+            )
+            result = await cur.fetchone()
     
     if result:
-        next_num = result[0]["num"] + 1
+        next_num = int(result[0][4:]) + 1
     else:
         next_num = 1
     
@@ -731,85 +806,137 @@ async def generate_next_order_number():
 
 @orders_router.get("/next-order-id")
 async def get_next_order_id(user: dict = Depends(get_current_user)):
-    """Get the next auto-generated order ID"""
     next_id = await generate_next_order_number()
     return {"next_order_id": next_id}
 
 @orders_router.post("", response_model=OrderResponse)
 async def create_order(order: OrderCreate, user: dict = Depends(get_current_user)):
-    # Use custom order_id if provided, otherwise auto-generate
+    db = await get_db()
+    
     if order.order_id and order.order_id.strip():
-        # Check if custom order ID already exists
-        existing = await db.orders.find_one({"order_number": order.order_id})
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT id FROM orders WHERE order_number = %s", (order.order_id,))
+                existing = await cur.fetchone()
         if existing:
             raise HTTPException(status_code=400, detail=f"Order ID {order.order_id} already exists")
         order_number = order.order_id.strip().upper()
     else:
         order_number = await generate_next_order_number()
     
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO orders (order_number, customer_name, created_by, created_by_name, status, created_at) 
+                   VALUES (%s, %s, %s, %s, 'pending', NOW())""",
+                (order_number, order.customer_name, user["user_id"], user["name"])
+            )
+            order_id = cur.lastrowid
+    
     order_items = []
     for item in order.items:
-        product = await db.products.find_one({"sku": item.sku}, {"_id": 0})
+        async with db.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SELECT * FROM products WHERE sku = %s", (item.sku,))
+                product = await cur.fetchone()
+        
         if not product:
             raise HTTPException(status_code=400, detail=f"Product with SKU {item.sku} not found")
         
-        order_items.append({
-            "id": str(uuid.uuid4()),
-            "sku": item.sku,
-            "product_name": product["product_name"],
-            "full_location_code": product["full_location_code"],
-            "quantity_required": item.quantity_required,
-            "quantity_available": product["quantity_available"],
-            "picking_status": "pending"
-        })
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """INSERT INTO order_items (order_id, sku, product_name, full_location_code, 
+                       quantity_required, quantity_available, picking_status) 
+                       VALUES (%s, %s, %s, %s, %s, %s, 'pending')""",
+                    (order_id, item.sku, product["product_name"], product["full_location_code"],
+                     item.quantity_required, product["quantity_available"])
+                )
+                item_id = cur.lastrowid
+        
+        order_items.append(OrderItemResponse(
+            id=item_id, sku=item.sku, product_name=product["product_name"],
+            full_location_code=product["full_location_code"], quantity_required=item.quantity_required,
+            quantity_available=product["quantity_available"], picking_status="pending"
+        ))
     
-    order_doc = {
-        "id": str(uuid.uuid4()),
-        "order_number": order_number,
-        "customer_name": order.customer_name,
-        "created_by": user["user_id"],
-        "created_by_name": user["name"],
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "items": order_items
-    }
-    
-    await db.orders.insert_one(order_doc)
-    
-    return OrderResponse(**order_doc)
+    return OrderResponse(
+        id=order_id, order_number=order_number, customer_name=order.customer_name,
+        created_by=user["user_id"], created_by_name=user["name"], status="pending",
+        created_at=datetime.now(timezone.utc).isoformat(), items=order_items
+    )
 
 @orders_router.get("", response_model=List[OrderResponse])
-async def get_orders(
-    status: Optional[str] = None,
-    limit: int = 50,
-    skip: int = 0,
-    user: dict = Depends(get_current_user)
-):
-    query = {}
-    if status:
-        query["status"] = status
+async def get_orders(status: Optional[str] = None, limit: int = 50, skip: int = 0, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    query = "SELECT * FROM orders WHERE 1=1"
+    params = []
     
-    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(min(limit, 200)).to_list(min(limit, 200))
-    return [OrderResponse(**order) for order in orders]
+    if status:
+        query += " AND status = %s"
+        params.append(status)
+    
+    query += f" ORDER BY created_at DESC LIMIT {min(limit, 200)} OFFSET {skip}"
+    
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(query, params)
+            orders = await cur.fetchall()
+    
+    result = []
+    for o in orders:
+        async with db.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SELECT * FROM order_items WHERE order_id = %s", (o["id"],))
+                items = await cur.fetchall()
+        
+        result.append(OrderResponse(
+            id=o["id"], order_number=o["order_number"], customer_name=o["customer_name"],
+            created_by=o["created_by"], created_by_name=o["created_by_name"], status=o["status"],
+            created_at=str(o["created_at"]),
+            items=[OrderItemResponse(
+                id=i["id"], sku=i["sku"], product_name=i["product_name"],
+                full_location_code=i["full_location_code"], quantity_required=i["quantity_required"],
+                quantity_available=i["quantity_available"], picking_status=i["picking_status"]
+            ) for i in items]
+        ))
+    
+    return result
 
 @orders_router.get("/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str, user: dict = Depends(get_current_user)):
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return OrderResponse(**order)
-
-@orders_router.patch("/{order_id}/items/{item_id}/pick")
-async def mark_item_picked(order_id: str, item_id: str, user: dict = Depends(get_current_user)):
-    order = await db.orders.find_one({"id": order_id})
-    if not order:
+async def get_order(order_id: int, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            o = await cur.fetchone()
+    
+    if not o:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    item = None
-    for i in order["items"]:
-        if i["id"] == item_id:
-            item = i
-            break
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+            items = await cur.fetchall()
+    
+    return OrderResponse(
+        id=o["id"], order_number=o["order_number"], customer_name=o["customer_name"],
+        created_by=o["created_by"], created_by_name=o["created_by_name"], status=o["status"],
+        created_at=str(o["created_at"]),
+        items=[OrderItemResponse(
+            id=i["id"], sku=i["sku"], product_name=i["product_name"],
+            full_location_code=i["full_location_code"], quantity_required=i["quantity_required"],
+            quantity_available=i["quantity_available"], picking_status=i["picking_status"]
+        ) for i in items]
+    )
+
+@orders_router.patch("/{order_id}/items/{item_id}/pick")
+async def mark_item_picked(order_id: int, item_id: int, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM order_items WHERE id = %s AND order_id = %s", (item_id, order_id))
+            item = await cur.fetchone()
     
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -817,246 +944,231 @@ async def mark_item_picked(order_id: str, item_id: str, user: dict = Depends(get
     if item["picking_status"] == "picked":
         raise HTTPException(status_code=400, detail="Item already picked")
     
-    # Deduct stock
-    product = await db.products.find_one({"sku": item["sku"]})
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM products WHERE sku = %s", (item["sku"],))
+            product = await cur.fetchone()
+    
     if product:
         new_quantity = product["quantity_available"] - item["quantity_required"]
         if new_quantity < 0:
             raise HTTPException(status_code=400, detail="Insufficient stock")
         
-        await db.products.update_one(
-            {"sku": item["sku"]},
-            {"$set": {
-                "quantity_available": new_quantity,
-                "last_updated": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        
-        # Log transaction
-        transaction = StockTransaction(
-            sku=item["sku"],
-            change_type="sale",
-            quantity_changed=-item["quantity_required"],
-            performed_by=user["user_id"]
-        )
-        await db.stock_transactions.insert_one(transaction.model_dump())
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "UPDATE products SET quantity_available = %s, last_updated = NOW() WHERE sku = %s",
+                    (new_quantity, item["sku"])
+                )
+                await cur.execute(
+                    """INSERT INTO stock_transactions (sku, change_type, quantity_changed, performed_by, created_at) 
+                       VALUES (%s, 'sale', %s, %s, NOW())""",
+                    (item["sku"], -item["quantity_required"], user["user_id"])
+                )
     
-    # Update item status
-    await db.orders.update_one(
-        {"id": order_id, "items.id": item_id},
-        {"$set": {"items.$.picking_status": "picked"}}
-    )
-    
-    # Check if all items picked
-    updated_order = await db.orders.find_one({"id": order_id})
-    all_picked = all(i["picking_status"] == "picked" for i in updated_order["items"])
-    
-    if all_picked:
-        await db.orders.update_one({"id": order_id}, {"$set": {"status": "completed"}})
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("UPDATE order_items SET picking_status = 'picked' WHERE id = %s", (item_id,))
+            
+            await cur.execute(
+                "SELECT COUNT(*) FROM order_items WHERE order_id = %s AND picking_status != 'picked'",
+                (order_id,)
+            )
+            unpicked = (await cur.fetchone())[0]
+            
+            if unpicked == 0:
+                await cur.execute("UPDATE orders SET status = 'completed' WHERE id = %s", (order_id,))
     
     return {"message": "Item marked as picked", "stock_deducted": item["quantity_required"]}
 
-# ==================== ORDER MODIFICATION ROUTES ====================
-
-async def log_order_modification(order_id: str, order_number: str, user: dict, 
-                                  mod_type: str, field: str, old_val: str, new_val: str, reason: str = None):
-    """Helper function to log order modifications"""
-    log_entry = OrderModificationLog(
-        order_id=order_id,
-        order_number=order_number,
-        modified_by=user["user_id"],
-        modified_by_name=user["name"],
-        modification_type=mod_type,
-        field_changed=field,
-        old_value=old_val,
-        new_value=new_val,
-        reason=reason
-    )
-    await db.order_modification_logs.insert_one(log_entry.model_dump())
-
 @orders_router.get("/{order_id}/modification-history")
-async def get_order_modification_history(order_id: str, user: dict = Depends(get_current_user)):
-    """Get modification history for an order"""
-    logs = await db.order_modification_logs.find(
-        {"order_id": order_id}, 
-        {"_id": 0}
-    ).sort("timestamp", -1).to_list(100)
-    return logs
+async def get_order_modification_history(order_id: int, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT * FROM order_modification_logs WHERE order_id = %s ORDER BY created_at DESC",
+                (order_id,)
+            )
+            logs = await cur.fetchall()
+    return [dict(log) for log in logs]
 
 @orders_router.patch("/{order_id}/customer")
-async def update_order_customer(order_id: str, update: OrderUpdateCustomer, user: dict = Depends(get_current_user)):
-    """Update customer name - staff can only edit pending orders"""
-    # Validate customer name
+async def update_order_customer(order_id: int, update: OrderUpdateCustomer, user: dict = Depends(get_current_user)):
     if not update.customer_name or not update.customer_name.strip():
         raise HTTPException(status_code=400, detail="Customer name cannot be empty")
     
-    order = await db.orders.find_one({"id": order_id})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Permission check
     if user["role"] != "admin" and order["status"] == "completed":
         raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
     
     old_value = order["customer_name"]
     new_value = update.customer_name.strip()
     
-    await db.orders.update_one(
-        {"id": order_id},
-        {"$set": {"customer_name": new_value}}
-    )
-    
-    # Log modification
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "customer_change", "customer_name",
-        old_value, new_value, update.reason
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("UPDATE orders SET customer_name = %s WHERE id = %s", (new_value, order_id))
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'customer_change', 'customer_name', %s, %s, %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"], old_value, new_value, update.reason)
+            )
     
     return {"message": "Customer name updated", "old_value": old_value, "new_value": new_value}
 
 @orders_router.patch("/{order_id}/status")
-async def update_order_status(order_id: str, update: OrderUpdateStatus, user: dict = Depends(require_admin)):
-    """Update order status - Admin only (can reopen completed orders)"""
-    order = await db.orders.find_one({"id": order_id})
+async def update_order_status(order_id: int, update: OrderUpdateStatus, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
     old_status = order["status"]
     
-    await db.orders.update_one(
-        {"id": order_id},
-        {"$set": {"status": update.status}}
-    )
-    
-    # Log modification
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "status_change", "status",
-        old_status, update.status, update.reason
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("UPDATE orders SET status = %s WHERE id = %s", (update.status, order_id))
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'status_change', 'status', %s, %s, %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"], old_status, update.status, update.reason)
+            )
     
     return {"message": f"Order status changed from {old_status} to {update.status}"}
 
 @orders_router.post("/{order_id}/items")
-async def add_order_item(order_id: str, item: OrderAddItem, user: dict = Depends(get_current_user)):
-    """Add item to existing order"""
-    order = await db.orders.find_one({"id": order_id})
+async def add_order_item(order_id: int, item: OrderAddItem, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Permission check
     if user["role"] != "admin" and order["status"] == "completed":
         raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
     
-    # Get product details
-    product = await db.products.find_one({"sku": item.sku}, {"_id": 0})
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM products WHERE sku = %s", (item.sku,))
+            product = await cur.fetchone()
+    
     if not product:
         raise HTTPException(status_code=400, detail=f"Product with SKU {item.sku} not found")
     
-    # Check if item already exists
-    for existing_item in order["items"]:
-        if existing_item["sku"] == item.sku:
-            raise HTTPException(status_code=400, detail=f"Item {item.sku} already exists. Use quantity update instead.")
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT id FROM order_items WHERE order_id = %s AND sku = %s", (order_id, item.sku))
+            existing = await cur.fetchone()
     
-    new_item = {
-        "id": str(uuid.uuid4()),
-        "sku": item.sku,
-        "product_name": product["product_name"],
-        "full_location_code": product["full_location_code"],
-        "quantity_required": item.quantity_required,
-        "quantity_available": product["quantity_available"],
-        "picking_status": "pending"
-    }
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Item {item.sku} already exists. Use quantity update instead.")
     
-    await db.orders.update_one(
-        {"id": order_id},
-        {"$push": {"items": new_item}, "$set": {"status": "pending"}}
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO order_items (order_id, sku, product_name, full_location_code, 
+                   quantity_required, quantity_available, picking_status) 
+                   VALUES (%s, %s, %s, %s, %s, %s, 'pending')""",
+                (order_id, item.sku, product["product_name"], product["full_location_code"],
+                 item.quantity_required, product["quantity_available"])
+            )
+            item_id = cur.lastrowid
+            await cur.execute("UPDATE orders SET status = 'pending' WHERE id = %s", (order_id,))
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'add_item', 'items', '', %s, %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"], 
+                 f"{item.sku} x{item.quantity_required}", item.reason)
+            )
     
-    # Log modification
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "add_item", "items",
-        "", f"{item.sku} x{item.quantity_required}", item.reason
-    )
-    
-    return {"message": f"Item {item.sku} added", "item_id": new_item["id"]}
+    return {"message": f"Item {item.sku} added", "item_id": item_id}
 
 @orders_router.delete("/{order_id}/items/{item_id}")
-async def remove_order_item(order_id: str, item_id: str, reason: Optional[str] = None, user: dict = Depends(get_current_user)):
-    """Remove item from order"""
-    order = await db.orders.find_one({"id": order_id})
+async def remove_order_item(order_id: int, item_id: int, reason: Optional[str] = None, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Permission check
     if user["role"] != "admin" and order["status"] == "completed":
         raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
     
-    # Find the item
-    item_to_remove = None
-    for item in order["items"]:
-        if item["id"] == item_id:
-            item_to_remove = item
-            break
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM order_items WHERE id = %s AND order_id = %s", (item_id, order_id))
+            item = await cur.fetchone()
     
-    if not item_to_remove:
+    if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     
-    # If item was picked, reverse the stock deduction
-    if item_to_remove["picking_status"] == "picked":
-        product = await db.products.find_one({"sku": item_to_remove["sku"]})
-        if product:
-            new_quantity = product["quantity_available"] + item_to_remove["quantity_required"]
-            await db.products.update_one(
-                {"sku": item_to_remove["sku"]},
-                {"$set": {
-                    "quantity_available": new_quantity,
-                    "last_updated": datetime.now(timezone.utc).isoformat()
-                }}
+    stock_restored = 0
+    if item["picking_status"] == "picked":
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "UPDATE products SET quantity_available = quantity_available + %s, last_updated = NOW() WHERE sku = %s",
+                    (item["quantity_required"], item["sku"])
+                )
+                await cur.execute(
+                    """INSERT INTO stock_transactions (sku, change_type, quantity_changed, performed_by, created_at) 
+                       VALUES (%s, 'reversal_remove_item', %s, %s, NOW())""",
+                    (item["sku"], item["quantity_required"], user["user_id"])
+                )
+        stock_restored = item["quantity_required"]
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("DELETE FROM order_items WHERE id = %s", (item_id,))
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'remove_item', 'items', %s, '', %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"],
+                 f"{item['sku']} x{item['quantity_required']}", reason)
             )
-            # Log stock reversal
-            transaction = StockTransaction(
-                sku=item_to_remove["sku"],
-                change_type="reversal_remove_item",
-                quantity_changed=item_to_remove["quantity_required"],
-                performed_by=user["user_id"]
-            )
-            await db.stock_transactions.insert_one(transaction.model_dump())
     
-    # Remove the item
-    await db.orders.update_one(
-        {"id": order_id},
-        {"$pull": {"items": {"id": item_id}}}
-    )
-    
-    # Log modification
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "remove_item", "items",
-        f"{item_to_remove['sku']} x{item_to_remove['quantity_required']}", "", reason
-    )
-    
-    return {"message": f"Item {item_to_remove['sku']} removed", "stock_restored": item_to_remove["quantity_required"] if item_to_remove["picking_status"] == "picked" else 0}
+    return {"message": f"Item {item['sku']} removed", "stock_restored": stock_restored}
 
 @orders_router.patch("/{order_id}/items/{item_id}/quantity")
-async def update_item_quantity(order_id: str, item_id: str, update: OrderUpdateItemQty, user: dict = Depends(get_current_user)):
-    """Update item quantity"""
-    order = await db.orders.find_one({"id": order_id})
+async def update_item_quantity(order_id: int, item_id: int, update: OrderUpdateItemQty, user: dict = Depends(get_current_user)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Permission check
     if user["role"] != "admin" and order["status"] == "completed":
         raise HTTPException(status_code=403, detail="Staff cannot edit completed orders")
     
-    # Find the item
-    item = None
-    for i in order["items"]:
-        if i["id"] == item_id:
-            item = i
-            break
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM order_items WHERE id = %s AND order_id = %s", (item_id, order_id))
+            item = await cur.fetchone()
     
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -1064,183 +1176,187 @@ async def update_item_quantity(order_id: str, item_id: str, update: OrderUpdateI
     old_qty = item["quantity_required"]
     new_qty = update.quantity_required
     qty_diff = new_qty - old_qty
+    stock_adjusted = 0
     
-    # If item was picked, adjust stock
     if item["picking_status"] == "picked":
-        product = await db.products.find_one({"sku": item["sku"]})
+        async with db.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SELECT quantity_available FROM products WHERE sku = %s", (item["sku"],))
+                product = await cur.fetchone()
+        
         if product:
-            # Reverse old deduction and apply new
             adjusted_quantity = product["quantity_available"] - qty_diff
             if adjusted_quantity < 0:
                 raise HTTPException(status_code=400, detail="Insufficient stock for quantity increase")
             
-            await db.products.update_one(
-                {"sku": item["sku"]},
-                {"$set": {
-                    "quantity_available": adjusted_quantity,
-                    "last_updated": datetime.now(timezone.utc).isoformat()
-                }}
+            async with db.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        "UPDATE products SET quantity_available = %s, last_updated = NOW() WHERE sku = %s",
+                        (adjusted_quantity, item["sku"])
+                    )
+                    await cur.execute(
+                        """INSERT INTO stock_transactions (sku, change_type, quantity_changed, performed_by, created_at) 
+                           VALUES (%s, 'qty_adjustment', %s, %s, NOW())""",
+                        (item["sku"], -qty_diff, user["user_id"])
+                    )
+            stock_adjusted = qty_diff
+    
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("UPDATE order_items SET quantity_required = %s WHERE id = %s", (new_qty, item_id))
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'qty_change', %s, %s, %s, %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"],
+                 f"quantity ({item['sku']})", str(old_qty), str(new_qty), update.reason)
             )
-            # Log stock adjustment
-            transaction = StockTransaction(
-                sku=item["sku"],
-                change_type="qty_adjustment",
-                quantity_changed=-qty_diff,
-                performed_by=user["user_id"]
-            )
-            await db.stock_transactions.insert_one(transaction.model_dump())
     
-    # Update the quantity
-    await db.orders.update_one(
-        {"id": order_id, "items.id": item_id},
-        {"$set": {"items.$.quantity_required": new_qty}}
-    )
-    
-    # Log modification
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "qty_change", f"quantity ({item['sku']})",
-        str(old_qty), str(new_qty), update.reason
-    )
-    
-    return {"message": f"Quantity updated from {old_qty} to {new_qty}", "stock_adjusted": qty_diff if item["picking_status"] == "picked" else 0}
+    return {"message": f"Quantity updated from {old_qty} to {new_qty}", "stock_adjusted": stock_adjusted}
 
 @orders_router.delete("/{order_id}")
-async def delete_order(order_id: str, reason: Optional[str] = None, user: dict = Depends(require_admin)):
-    """Delete order - Admin only with logging"""
-    order = await db.orders.find_one({"id": order_id})
+async def delete_order(order_id: int, reason: Optional[str] = None, user: dict = Depends(require_admin)):
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+            order = await cur.fetchone()
+    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Log the deletion before deleting
-    await log_order_modification(
-        order_id, order["order_number"], user,
-        "delete_order", "order",
-        f"Order {order['order_number']} with {len(order['items'])} items", "DELETED", reason
-    )
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+            items = await cur.fetchall()
     
-    # Reverse any picked item stock deductions
-    for item in order["items"]:
+    for item in items:
         if item["picking_status"] == "picked":
-            product = await db.products.find_one({"sku": item["sku"]})
-            if product:
-                new_quantity = product["quantity_available"] + item["quantity_required"]
-                await db.products.update_one(
-                    {"sku": item["sku"]},
-                    {"$set": {
-                        "quantity_available": new_quantity,
-                        "last_updated": datetime.now(timezone.utc).isoformat()
-                    }}
-                )
-                # Log stock reversal
-                transaction = StockTransaction(
-                    sku=item["sku"],
-                    change_type="reversal_order_delete",
-                    quantity_changed=item["quantity_required"],
-                    performed_by=user["user_id"]
-                )
-                await db.stock_transactions.insert_one(transaction.model_dump())
+            async with db.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        "UPDATE products SET quantity_available = quantity_available + %s, last_updated = NOW() WHERE sku = %s",
+                        (item["quantity_required"], item["sku"])
+                    )
+                    await cur.execute(
+                        """INSERT INTO stock_transactions (sku, change_type, quantity_changed, performed_by, created_at) 
+                           VALUES (%s, 'reversal_order_delete', %s, %s, NOW())""",
+                        (item["sku"], item["quantity_required"], user["user_id"])
+                    )
     
-    await db.orders.delete_one({"id": order_id})
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """INSERT INTO order_modification_logs (order_id, order_number, modified_by, modified_by_name,
+                   modification_type, field_changed, old_value, new_value, reason, created_at)
+                   VALUES (%s, %s, %s, %s, 'delete_order', 'order', %s, 'DELETED', %s, NOW())""",
+                (order_id, order["order_number"], user["user_id"], user["name"],
+                 f"Order {order['order_number']} with {len(items)} items", reason)
+            )
+            await cur.execute("DELETE FROM order_items WHERE order_id = %s", (order_id,))
+            await cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
+    
     return {"message": "Order deleted", "order_number": order["order_number"]}
 
 # ==================== DASHBOARD ROUTES ====================
 
 @dashboard_router.get("/stats", response_model=DashboardStats)
 async def get_dashboard_stats(user: dict = Depends(get_current_user)):
-    total_products = await db.products.count_documents({})
-    
-    pipeline = [{"$group": {"_id": None, "total": {"$sum": "$quantity_available"}}}]
-    stock_result = await db.products.aggregate(pipeline).to_list(1)
-    total_stock = stock_result[0]["total"] if stock_result else 0
-    
-    low_stock_pipeline = [
-        {"$match": {"$expr": {"$lte": ["$quantity_available", "$reorder_level"]}}},
-        {"$count": "count"}
-    ]
-    low_stock_result = await db.products.aggregate(low_stock_pipeline).to_list(1)
-    low_stock_count = low_stock_result[0]["count"] if low_stock_result else 0
-    
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    sales_today = await db.orders.count_documents({
-        "created_at": {"$regex": f"^{today}"}
-    })
-    
-    orders_pending = await db.orders.count_documents({"status": "pending"})
-    orders_completed = await db.orders.count_documents({"status": "completed"})
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT COUNT(*) FROM products")
+            total_products = (await cur.fetchone())[0]
+            
+            await cur.execute("SELECT COALESCE(SUM(quantity_available), 0) FROM products")
+            total_stock = int((await cur.fetchone())[0])
+            
+            await cur.execute("SELECT COUNT(*) FROM products WHERE quantity_available <= reorder_level")
+            low_stock_count = (await cur.fetchone())[0]
+            
+            await cur.execute("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE()")
+            sales_today = (await cur.fetchone())[0]
+            
+            await cur.execute("SELECT COUNT(*) FROM orders WHERE status = 'pending'")
+            orders_pending = (await cur.fetchone())[0]
+            
+            await cur.execute("SELECT COUNT(*) FROM orders WHERE status = 'completed'")
+            orders_completed = (await cur.fetchone())[0]
     
     return DashboardStats(
-        total_products=total_products,
-        total_stock_units=total_stock,
-        low_stock_items=low_stock_count,
-        sales_today=sales_today,
-        orders_pending=orders_pending,
-        orders_completed=orders_completed
+        total_products=total_products, total_stock_units=total_stock, low_stock_items=low_stock_count,
+        sales_today=sales_today, orders_pending=orders_pending, orders_completed=orders_completed
     )
 
 @dashboard_router.get("/zone-distribution")
 async def get_zone_distribution(user: dict = Depends(get_current_user)):
-    pipeline = [
-        {"$group": {"_id": "$zone", "count": {"$sum": 1}, "stock": {"$sum": "$quantity_available"}}},
-        {"$project": {"zone": "$_id", "count": 1, "stock": 1, "_id": 0}}
-    ]
-    result = await db.products.aggregate(pipeline).to_list(100)
-    return result
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT zone, COUNT(*) as count, SUM(quantity_available) as stock FROM products GROUP BY zone"
+            )
+            result = await cur.fetchall()
+    return [dict(r) for r in result]
 
 @dashboard_router.get("/category-distribution")
 async def get_category_distribution(user: dict = Depends(get_current_user)):
-    pipeline = [
-        {"$group": {"_id": "$category", "count": {"$sum": 1}}},
-        {"$project": {"category": "$_id", "count": 1, "_id": 0}},
-        {"$sort": {"count": -1}},
-        {"$limit": 10}
-    ]
-    result = await db.products.aggregate(pipeline).to_list(10)
-    return result
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT category, COUNT(*) as count FROM products GROUP BY category ORDER BY count DESC LIMIT 10"
+            )
+            result = await cur.fetchall()
+    return [dict(r) for r in result]
 
 @dashboard_router.get("/recent-transactions")
 async def get_recent_transactions(user: dict = Depends(get_current_user)):
-    transactions = await db.stock_transactions.find(
-        {}, {"_id": 0}
-    ).sort("timestamp", -1).to_list(20)
-    return transactions
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM stock_transactions ORDER BY created_at DESC LIMIT 20")
+            transactions = await cur.fetchall()
+    return [dict(t) for t in transactions]
 
 @dashboard_router.get("/low-stock-items")
 async def get_low_stock_items(user: dict = Depends(get_current_user)):
-    pipeline = [
-        {"$match": {"$expr": {"$lte": ["$quantity_available", "$reorder_level"]}}},
-        {"$project": {
-            "_id": 0,
-            "sku": 1,
-            "product_name": 1,
-            "quantity_available": 1,
-            "reorder_level": 1,
-            "full_location_code": 1
-        }},
-        {"$limit": 20}
-    ]
-    result = await db.products.aggregate(pipeline).to_list(20)
-    return result
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                """SELECT sku, product_name, quantity_available, reorder_level, full_location_code 
+                   FROM products WHERE quantity_available <= reorder_level LIMIT 20"""
+            )
+            result = await cur.fetchall()
+    return [dict(r) for r in result]
 
 @dashboard_router.get("/staff-presence")
 async def get_staff_presence(user: dict = Depends(get_current_user)):
-    """Get all staff presence status for dashboard"""
-    employees = await db.employees.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute("SELECT * FROM employees")
+            employees = await cur.fetchall()
+    
     result = []
     for emp in employees:
-        # Get the name of who updated presence
         presence_updated_by_name = None
         if emp.get("presence_updated_by"):
-            updater = await db.employees.find_one({"id": emp["presence_updated_by"]}, {"_id": 0, "name": 1})
-            if updater:
-                presence_updated_by_name = updater.get("name")
+            async with db.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute("SELECT name FROM employees WHERE id = %s", (emp["presence_updated_by"],))
+                    updater = await cur.fetchone()
+                    if updater:
+                        presence_updated_by_name = updater.get("name")
         
         result.append({
             "id": emp["id"],
             "name": emp["name"],
             "role": emp["role"],
             "presence_status": emp.get("presence_status", "present"),
-            "presence_updated_at": emp.get("presence_updated_at"),
+            "presence_updated_at": str(emp["presence_updated_at"]) if emp.get("presence_updated_at") else None,
             "presence_updated_by_name": presence_updated_by_name
         })
     return result
@@ -1248,40 +1364,48 @@ async def get_staff_presence(user: dict = Depends(get_current_user)):
 # ==================== PUBLIC ROUTES (NO AUTH) ====================
 
 @public_router.get("/catalogue", response_model=List[PublicProduct])
-async def get_public_catalogue(
-    search: Optional[str] = None,
-    category: Optional[str] = None,
-    limit: int = 50,
-    skip: int = 0
-):
-    query = {}
+async def get_public_catalogue(search: Optional[str] = None, category: Optional[str] = None, limit: int = 50, skip: int = 0):
+    db = await get_db()
+    query = "SELECT sku, product_name, category, brand, image_url, selling_price, mrp, unit FROM products WHERE 1=1"
+    params = []
+    
     if search:
-        query["$or"] = [
-            {"sku": {"$regex": search, "$options": "i"}},
-            {"product_name": {"$regex": search, "$options": "i"}}
-        ]
+        query += " AND (sku LIKE %s OR product_name LIKE %s)"
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param])
+    
     if category:
-        query["category"] = category
+        query += " AND category = %s"
+        params.append(category)
     
-    # Only return public fields - NO stock info, NO location
-    products = await db.products.find(
-        query,
-        {"_id": 0, "sku": 1, "product_name": 1, "category": 1, "brand": 1, "image_url": 1, 
-         "selling_price": 1, "mrp": 1, "unit": 1}
-    ).skip(skip).limit(min(limit, 100)).to_list(min(limit, 100))
+    query += f" ORDER BY product_name LIMIT {min(limit, 100)} OFFSET {skip}"
     
-    return [PublicProduct(**prod) for prod in products]
+    async with db.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(query, params)
+            products = await cur.fetchall()
+    
+    return [PublicProduct(
+        sku=p["sku"], product_name=p["product_name"], category=p["category"],
+        brand=p["brand"] or "", image_url=p["image_url"] or "",
+        selling_price=float(p["selling_price"] or 0), mrp=float(p["mrp"] or 0),
+        unit=p["unit"] or "piece"
+    ) for p in products]
 
 @public_router.get("/categories")
 async def get_public_categories():
-    categories = await db.products.distinct("category")
-    return categories
+    db = await get_db()
+    async with db.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT DISTINCT category FROM products ORDER BY category")
+            categories = await cur.fetchall()
+    return [c[0] for c in categories if c[0]]
 
 # ==================== ROOT & HEALTH ====================
 
 @api_router.get("/")
 async def root():
-    return {"message": "Sellandiamman Traders API", "status": "running"}
+    return {"message": "Sellandiamman Traders API", "status": "running", "database": "MySQL"}
 
 @api_router.get("/health")
 async def health():
@@ -1291,30 +1415,36 @@ async def health():
 
 @app.on_event("startup")
 async def startup_db():
-    # Create default admin if not exists
-    admin = await db.employees.find_one({"email": "admin@sellandiamman.com"})
-    if not admin:
-        admin_doc = {
-            "id": str(uuid.uuid4()),
-            "name": "Admin",
-            "email": "admin@sellandiamman.com",
-            "role": "admin",
-            "status": "active",
-            "password_hash": hash_password("admin123"),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.employees.insert_one(admin_doc)
-        logging.info("Default admin created: admin@sellandiamman.com / admin123")
-    
-    # Create indexes
-    await db.products.create_index("sku", unique=True)
-    await db.products.create_index("full_location_code")
-    await db.employees.create_index("email", unique=True)
-    await db.orders.create_index("order_number", unique=True)
+    global pool
+    try:
+        pool = await aiomysql.create_pool(**MYSQL_CONFIG)
+        logging.info("MySQL connection pool created")
+        
+        async with pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SELECT * FROM employees WHERE email = 'admin@sellandiamman.com'")
+                admin = await cur.fetchone()
+        
+        if not admin:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        """INSERT INTO employees (name, email, role, status, password_hash, presence_status, created_at) 
+                           VALUES ('Admin', 'admin@sellandiamman.com', 'admin', 'active', %s, 'present', NOW())""",
+                        (hash_password("admin123"),)
+                    )
+            logging.info("Default admin created: admin@sellandiamman.com / admin123")
+        
+    except Exception as e:
+        logging.error(f"Database connection failed: {e}")
+        raise
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_db():
+    global pool
+    if pool:
+        pool.close()
+        await pool.wait_closed()
 
 # Include all routers
 app.include_router(api_router)
@@ -1333,7 +1463,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
