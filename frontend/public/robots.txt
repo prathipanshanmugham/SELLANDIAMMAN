@@ -1,18 +1,7 @@
-# Robots.txt for Sellandiamman Traders
-# https://sellandiamman-app.preview.emergentagent.com
-
 User-agent: *
 Allow: /
-Allow: /catalogue
-Allow: /contact
+Disallow: /admin/
+Disallow: /staff/
+Disallow: /api/
 
-# Disallow admin and staff areas
-Disallow: /admin
-Disallow: /staff
-Disallow: /login
-
-# Sitemap location
-Sitemap: https://sellandiamman-app.preview.emergentagent.com/sitemap.xml
-
-# Crawl delay
-Crawl-delay: 1
+Sitemap: https://www.sellandiammantraders.com/sitemap.xml
