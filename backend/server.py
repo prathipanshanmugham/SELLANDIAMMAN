@@ -1458,7 +1458,12 @@ app.include_router(public_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=[
+        "https://www.sellandiammantraders.com",
+        "https://sellandiammantraders.com",
+        "http://localhost:3000",
+        os.environ.get('CORS_ORIGINS', '*')
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
