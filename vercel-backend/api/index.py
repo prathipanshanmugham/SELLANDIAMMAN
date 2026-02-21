@@ -1,26 +1,65 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
-import jwt
-import bcrypt
-import pymysql
+import sys
+import traceback
+
+# Debug: Print Python version and environment info
+print(f"Python version: {sys.version}", flush=True)
+print(f"Starting Sellandiamman API...", flush=True)
+
+try:
+    import jwt
+    print("jwt imported successfully", flush=True)
+except ImportError as e:
+    print(f"Error importing jwt: {e}", flush=True)
+    jwt = None
+
+try:
+    import bcrypt
+    print("bcrypt imported successfully", flush=True)
+except ImportError as e:
+    print(f"Error importing bcrypt: {e}", flush=True)
+    bcrypt = None
+
+try:
+    import pymysql
+    import pymysql.cursors
+    print("pymysql imported successfully", flush=True)
+except ImportError as e:
+    print(f"Error importing pymysql: {e}", flush=True)
+    pymysql = None
+
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 
 # MySQL Configuration
+MYSQL_HOST = os.environ.get('MYSQL_HOST', '')
+MYSQL_USER = os.environ.get('MYSQL_USER', '')
+MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
+MYSQL_DATABASE = os.environ.get('MYSQL_DATABASE', '')
+
+print(f"MYSQL_HOST configured: {'Yes' if MYSQL_HOST else 'No'}", flush=True)
+print(f"MYSQL_USER configured: {'Yes' if MYSQL_USER else 'No'}", flush=True)
+print(f"MYSQL_DATABASE configured: {'Yes' if MYSQL_DATABASE else 'No'}", flush=True)
+
 MYSQL_CONFIG = {
-    'host': os.environ.get('MYSQL_HOST', 'localhost'),
-    'user': os.environ.get('MYSQL_USER', ''),
-    'password': os.environ.get('MYSQL_PASSWORD', ''),
-    'db': os.environ.get('MYSQL_DATABASE', ''),
+    'host': MYSQL_HOST,
+    'user': MYSQL_USER,
+    'password': MYSQL_PASSWORD,
+    'db': MYSQL_DATABASE,
     'charset': 'utf8mb4',
-    'cursorclass': pymysql.cursors.DictCursor
+    'cursorclass': pymysql.cursors.DictCursor if pymysql else None
 }
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'sellandiamman-secret-2024')
 JWT_ALGORITHM = "HS256"
 
 def get_db():
+    if not pymysql:
+        raise Exception("pymysql not available")
+    if not MYSQL_HOST or not MYSQL_USER or not MYSQL_DATABASE:
+        raise Exception(f"Missing MySQL config: HOST={bool(MYSQL_HOST)}, USER={bool(MYSQL_USER)}, DB={bool(MYSQL_DATABASE)}")
     return pymysql.connect(**MYSQL_CONFIG)
 
 def hash_password(password):
