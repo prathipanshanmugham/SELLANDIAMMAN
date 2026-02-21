@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 
 class SellandiammanTradersAPITester:
-    def __init__(self, base_url="https://sellandiamman-app.preview.emergentagent.com"):
+    def __init__(self, base_url="https://trader-portal-dev.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
         self.staff_token = None
