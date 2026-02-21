@@ -140,10 +140,41 @@ class handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         query = parse_qs(urlparse(self.path).query)
         
+        print(f"Handling {method} request for {path}", flush=True)
+        
         try:
             # Health check
             if path == '/api/health':
-                return self.send_json(200, {"status": "healthy"})
+                # Test database connection
+                db_status = "unknown"
+                db_error = None
+                try:
+                    if pymysql and MYSQL_HOST:
+                        conn = get_db()
+                        conn.close()
+                        db_status = "connected"
+                    else:
+                        db_status = "not_configured"
+                except Exception as db_e:
+                    db_status = "error"
+                    db_error = str(db_e)
+                
+                return self.send_json(200, {
+                    "status": "healthy",
+                    "database": db_status,
+                    "db_error": db_error,
+                    "python_version": sys.version,
+                    "modules": {
+                        "jwt": jwt is not None,
+                        "bcrypt": bcrypt is not None,
+                        "pymysql": pymysql is not None
+                    },
+                    "env_configured": {
+                        "MYSQL_HOST": bool(MYSQL_HOST),
+                        "MYSQL_USER": bool(MYSQL_USER),
+                        "MYSQL_DATABASE": bool(MYSQL_DATABASE)
+                    }
+                })
             
             if path == '/api':
                 return self.send_json(200, {"message": "Sellandiamman Traders API", "status": "running"})
