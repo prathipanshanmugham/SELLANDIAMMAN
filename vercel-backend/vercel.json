@@ -10,14 +10,10 @@
     {
       "src": "/api/(.*)",
       "dest": "api/index.py"
+    },
+    {
+      "src": "/api",
+      "dest": "api/index.py"
     }
-  ],
-  "env": {
-    "MYSQL_HOST": "@mysql_host",
-    "MYSQL_USER": "@mysql_user",
-    "MYSQL_PASSWORD": "@mysql_password",
-    "MYSQL_DATABASE": "@mysql_database",
-    "JWT_SECRET": "@jwt_secret",
-    "CORS_ORIGINS": "@cors_origins"
-  }
+  ]
 }
