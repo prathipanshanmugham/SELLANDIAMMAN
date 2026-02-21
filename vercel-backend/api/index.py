@@ -247,7 +247,9 @@ class handler(BaseHTTPRequestHandler):
             return self.send_json(404, {"detail": "Not found"})
             
         except Exception as e:
-            return self.send_json(500, {"detail": str(e)})
+            print(f"Error in handle_request: {str(e)}", flush=True)
+            print(f"Traceback: {traceback.format_exc()}", flush=True)
+            return self.send_json(500, {"detail": str(e), "traceback": traceback.format_exc()})
     
     # === AUTH HANDLERS ===
     def handle_login(self):
